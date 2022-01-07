@@ -1,7 +1,7 @@
 # Java-Study
 
 #### 介绍
-**部分手写笔记，全都是一人完成，如有错误请见谅。**
+**作者自己的手写笔记，这只是一小部分(大概只占了30%)，全都是一人完成，如有错误请见谅。**
 
 ## Java并发编程（多线程高并发）
 
@@ -380,11 +380,8 @@ class ticket implements Runnable{
 
 
 
+![image-20210314145848698](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210314145848698.png)
 
-
-
-
-![image-20210314145848698](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210314145848698.png)
 
 **出现很多人抢到同一张票，出现了线程不安全问题**
 
