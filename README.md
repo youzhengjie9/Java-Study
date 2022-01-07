@@ -5707,19 +5707,12 @@ public class client {
 
 **需要配置环境变量**
 
-![image-20210304210138086](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210304210138086.png)
+![image-20210304210138086](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210304210138086.png)
 
 
+![image-20210304210211142](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210304210211142.png)
 
-![image-20210304210211142](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210304210211142.png)
-
-
-
-
-
-
-
-
+ 
 
 **（3.）检查是否安装成功**
 
@@ -8645,7 +8638,7 @@ GET goods/_search
  
 #### 模仿百度搜索高亮
 
-![image-20210417165852357](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210417165852357.png)
+![image-20210417165852357](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210417165852357.png)
 
 
 
@@ -9850,19 +9843,19 @@ public static void main(String[] args) {
 
 ## 创建SpringBoot项目报错的问题
 
-![image-20210127162355056](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210127162355056.png)
-
+![image-20210127162355056](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210127162355056.png)
 
 
 **遇到这个问题我们可以在Custom输入：https://start.springboot.io，这个是阿里云的SpringBoot镜像**
 
-![image-20210127164110200](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210127164110200.png)
+![image-20210127164110200](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210127164110200.png)
 
 
  
 ## 生成SpringBoot项目
 
-![image-20210109152424990](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109152424990.png)![image-20210109152519889](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109152519889.png)
+![image-20210109152424990](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109152424990.png)
+![image-20210109152519889](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109152519889.png)
 
 再点击Next，勾选自己需要的模块，这样SpringBoot项目就构建好了。
 
@@ -9874,31 +9867,33 @@ public static void main(String[] args) {
 
 1.**在resources目录下的templates放页面**
 
-![image-20210109154046821](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109154046821.png)
+![image-20210109154046821](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109154046821.png)
+
 
 2.**必须把Java代码放在springBoot主程序同级的目录下（也就是当前的boot目录），不然springboot检测不到**
 
-![image-20210109154314721](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109154314721.png)
+![image-20210109154314721](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109154314721.png)
+
 
 3.controller层方法。
 
-![image-20210109155102243](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109155102243.png)
+![image-20210109155102243](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109155102243.png)
 
 
 
 ***然后去访问这个路径就OK啦。***
 
-![image-20210109155246006](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109155246006.png)
+![image-20210109155246006](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109155246006.png)
+
 
 ------
 
 
 
-
-
 ### 运行时的异常。-datasource
 
-![image-20210109153300025](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109153300025.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
+
 
 很显然可以看出这是关于数据源的异常，因为我们在构建SpringBoot项目时勾选了Datasource模块，SpringBoot的AutoConfiguration自动去配置数据源，而我们没有对数据源进行配置，所以就会报错。
 
@@ -9932,13 +9927,15 @@ SpringBoot有父依赖。
 
 **我们点进去spring-boot-starter-parent看看。**
 
-![image-20210109160042561](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109160042561.png)
+![image-20210109160042561](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109160042561.png)
+
 
 **springBoot里面自带了很多依赖，这些依赖都在spring-boot-dependencies里面。**
 
 我们截取了一段代码。
 
-![image-20210109160422815](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109160422815.png)
+![image-20210109160422815](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109160422815.png)
+
 
 **说明SpringBoot自带了很多依赖，和控制了这些依赖的version（版本）==》spring-boot-dependencies是版本控制中心**
 
@@ -9946,17 +9943,17 @@ SpringBoot有父依赖。
 
 **springBoot的启动器**
 
-![image-20210109161653710](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109161653710.png)
+![image-20210109161653710](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109161653710.png)
 
 
 
 我们点进去一个看看。
 
-![image-20210109162019249](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109162019249.png)
+![image-20210109162019249](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109162019249.png)
 
 
 
-![image-20210109162243797](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109162243797.png)
+![image-20210109162243797](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109162243797.png)
 
 
 
@@ -9968,11 +9965,10 @@ SpringBoot有父依赖。
 
 ### SpringBoot的主程序
 
-![image-20210109163611654](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109163611654.png)
+![image-20210109163611654](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109163611654.png)
 
 
-
-![image-20210109163828860](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109163828860.png)
+![image-20210109163828860](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109163828860.png)
 
 
 
@@ -9982,7 +9978,7 @@ SpringBoot有父依赖。
 
 **点开@SpringBootApplication：**
 
-![image-20210109164119351](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109164119351.png)
+![image-20210109164119351](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109164119351.png)
 
 
 
@@ -9998,9 +9994,11 @@ SpringBoot底层运用了大量的Spring底层注解。
 
 进去**@SpringBootConfiguration注解里面：**
 
-![image-20210109165129494](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109165129494.png)
+![image-20210109165129494](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109165129494.png)
 
-![image-20210109165231322](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109165231322.png)
+
+![image-20210109165231322](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109165231322.png)
+
 
 因为@SpringBootConfiguration里面有@Configuration注解，@Configuration里面又有@Component注解。
 
@@ -10010,7 +10008,7 @@ SpringBoot底层运用了大量的Spring底层注解。
 
 点进去**@EnableAutoConfiguration**注解：
 
-![image-20210109165552449](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109165552449.png)
+![image-20210109165552449](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109165552449.png)
 
 
 
@@ -10120,11 +10118,10 @@ private static Map<String, List<String>> loadSpringFactories(ClassLoader classLo
 
 
 
-![image-20210109171956534](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109171956534.png)
+![image-20210109171956534](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109171956534.png)
 
 
-
-![image-20210109172121879](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210109172121879.png)
+![image-20210109172121879](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109172121879.png)
 
 
 
@@ -10185,7 +10182,7 @@ spring.datasource.driver-class-name=com.mysql.jdbc.Driver
 
 **问：我们如何用SpringBoot自带的配置文件对一个对象进行封装，以便我们用@Autowired对这个类进行注入**
 
-![image-20210110161513385](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210110161513385.png)
+![image-20210110161513385](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210110161513385.png)
 
 
 
@@ -10228,7 +10225,7 @@ public class DemoApplication {
 
 进入application.yml：
 
-![image-20210110162742344](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210110162742344.png)
+![image-20210110162742344](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210110162742344.png)
 
 
 
@@ -10262,6 +10259,8 @@ class DemoApplicationTests {
 ```
 
 ![image-20210110163028079](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210110163028079.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
+
 
 **====然后我们就绑定成功了！！！**
 
@@ -10299,6 +10298,7 @@ server.port=8081
 
 
 ![image-20210110171903820](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210110171903820.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -10429,18 +10429,12 @@ private static Map<String, List<String>> loadSpringFactories(ClassLoader classLo
 
 1. **当springBoot启动时，会去搜索所有/META-INF/spring.factories**
 2. ![image-20210115165407600](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210115165407600.png)
+2. ![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
+
 
 **并把所有EnableAutoConfiguration的值导入到容器中，然后自动配置才会生效**
 
 **xxxAutoConfiguration会和xxxProperties绑定在一起，xxxAutoConfiguration需要的值会在xxxProperties里面取，xxxProperties的默认值可以通过application.properties来设置**
-
-
-
-
-
-
-
-
 
  
 
@@ -10455,6 +10449,7 @@ private static Map<String, List<String>> loadSpringFactories(ClassLoader classLo
 **SpringBoot项目自带的静态资源目录**
 
 ![image-20210111225839932](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210111225839932.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -10555,6 +10550,8 @@ WelcomePageHandlerMapping(TemplateAvailabilityProviders templateAvailabilityProv
 **上面我们说了，所有在"classpath:/META-INF/resources/", "classpath:/resources/", "classpath:/static/", "classpath:/public/"路径下的静态资源都会被SpringBoot扫描，上面的代码可以看出SpringBoot会扫描这些路径下的index.html，作为欢迎页**
 
 ![image-20210111235539517](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210111235539517.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
+
 
 ### 静态资源处理的两种方式
 
@@ -10669,6 +10666,7 @@ class DemoApplicationTests {
 **运行结果如下：**
 
 ![image-20210113161631607](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210113161631607.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -10717,6 +10715,7 @@ class DemoApplicationTests {
 
 
 ![image-20210113162723306](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210113162723306.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -10729,6 +10728,8 @@ class DemoApplicationTests {
 **JdbcTemplate是Spring对JDBC的封装，目的是让Jdbc更加容易使用**
 
 ![image-20210113164334271](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210113164334271.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
+
 
 **说明我们的JdbcTemplate可以正常使用了**
 
@@ -10737,12 +10738,15 @@ class DemoApplicationTests {
 **查询单个数据：**
 
 ![image-20210113165628283](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210113165628283.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
 **查询多个数据：**
 
 ![image-20210113165815772](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210113165815772.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
+
 
 ------
 
@@ -10821,12 +10825,14 @@ public class myDruid {
 **这样就完成啦**
 
 ![image-20210113172829360](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210113172829360.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
 **输入刚刚配置的帐号密码就可以进入**
 
 ![image-20210113172854913](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210113172854913.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -10837,12 +10843,17 @@ public class myDruid {
 
 
 ![image-20210116152421022](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210116152421022.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
+
 
 ![image-20210116152434429](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210116152434429.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 ![image-20210116152457152](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210116152457152.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 ![image-20210116152513332](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210116152513332.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -10871,6 +10882,7 @@ public class myDruid {
 **绑定异常有很多种，当我们Mapper和Mapper.xml都绑定起来了，但是还报错。**
 
 ![image-20210128114800015](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210128114800015.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -10935,6 +10947,7 @@ public class DemoApplication {
 
 
 ![image-20210117230956632](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210117230956632.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -10945,10 +10958,12 @@ public class DemoApplication {
 **正确写法：**
 
 ![image-20210117231249701](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210117231249701.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
 ![image-20210117231338074](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210117231338074.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -11010,6 +11025,7 @@ public class DemoApplication {
 **2.开启qq邮箱的SMTP服务**
 
 ![image-20210118174756651](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210118174756651.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -11018,6 +11034,7 @@ public class DemoApplication {
 **3.获取SMTP授权码**
 
 ![image-20210118174701564](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210118174701564.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -11063,6 +11080,7 @@ class DemoApplicationTests {
 **发现报错了。。。**
 
 ![image-20210118180513820](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210118180513820.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -11071,6 +11089,7 @@ class DemoApplicationTests {
 **成功了！！！！**
 
 ![image-20210118181901117](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210118181901117.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -11085,6 +11104,7 @@ class DemoApplicationTests {
 
 
 ![image-20210118182343270](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210118182343270.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -11351,6 +11371,7 @@ public class testController {
 **5.需要的html文件**
 
 ![image-20210122143848238](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210122143848238.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -11402,6 +11423,8 @@ public class myMvcConfig implements WebMvcConfigurer {
 ## 页面国际化
 
 ![image-20210127145329346](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210127145329346.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
+
 
 **创建xxx.properties作为默认国际化配置文件，xxx_zh_CN.properties作为中文配置，xxx_en_US.properties作为英文配置，这个Resource Bundle 'login'是会自动生成的**
 
@@ -11410,6 +11433,7 @@ public class myMvcConfig implements WebMvcConfigurer {
 **进入login.properties**
 
 ![image-20210127145551970](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210127145551970.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -11420,6 +11444,8 @@ public class myMvcConfig implements WebMvcConfigurer {
 **在application-dev.properties指定国家化消息的basename，因为我们自定义了xxx.properties的xxx是login，所以login就是我们的总的国家化配置文件，只需要绑定这个login就行了**
 
 ![image-20210127145922680](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210127145922680.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
+
 
 ```properties
 spring.messages.basename=i18n.login //i18n就是我们用来存放国家化配置文件的包名
@@ -11523,6 +11549,7 @@ public class myLocaleConfig {
 
 
 ![image-20210220134218449](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210220134218449.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -11622,6 +11649,7 @@ public class myLocaleConfig {
 **3.创建一个子模块，作微服务的提供者，端口号为8001**
 
 ![image-20210222004113174](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210222004113174.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -11713,6 +11741,8 @@ spring:
 **创建一个子模块(springcloud-02-api)，专门放实体类**
 
 ![image-20210222011216901](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210222011216901.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
+
 
 ```java
 public class dept implements Serializable {
@@ -11865,6 +11895,7 @@ spring:
 **配置如下：**
 
 ![image-20210222203000271](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210222203000271.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -12013,6 +12044,7 @@ eureka:
 #### Bug：引入Eureka后报错。
 
 ![image-20210222160445890](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210222160445890.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -12204,6 +12236,7 @@ eureka:
 #### Bug：ribbon+restTemplate报错
 
 ![image-20210222232329911](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210222232329911.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -12234,6 +12267,7 @@ management:
 ```
 
 ![image-20210222233505528](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210222233505528.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -12260,6 +12294,7 @@ management:
 **点进去看看**
 
 ![image-20210224104302484](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210224104302484.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -12335,6 +12370,7 @@ public class deptController {
 **错误类型：**
 
 ![image-20210227163134805](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210227163134805.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -12409,6 +12445,8 @@ public interface deptService {
 **没有报错了！！！**
 
 ![image-20210227165930130](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210227165930130.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
+
 
 **解决方法二：在微服务提供者加上@PathVariable注解。。**
 
@@ -12763,6 +12801,8 @@ public class springBootApplication8110 {
 #### Bug：Hystrix仪表盘连接不上
 
 ![image-20210227124135194](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210227124135194.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
+
 
 **解决方法：在每一个需要监控的模块（比如微服务提供者8001和8002）加上如下配置**
 
@@ -12815,6 +12855,8 @@ public class SpringBootApplication8001 {
 **成功页面👇**
 
 ![image-20210227170129598](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210227170129598.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
+
 
 ## 服务网关springcloud gateway
 
@@ -12934,6 +12976,7 @@ eureka:
 **1.创建gitee或者GitHub，并把配置文件上传到git**
 
 ![image-20210302204336025](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210302204336025.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -13061,6 +13104,7 @@ public class testController {
 
 
 ![image-20210303204534651](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210303204534651.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -13073,6 +13117,8 @@ public class testController {
 **去访问一下config-server**
 
 ![image-20210303204818402](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210303204818402.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
+
 
 **发现config-server是可以立刻更新到的，因为config-server和gitee是直连的。**
 
@@ -13081,6 +13127,8 @@ public class testController {
 **我们去访问一下config-client**
 
 ![image-20210303204946992](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210303204946992.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
+
 
 **发现还是1.7，只有重新启动config-client项目才能更新成1.8，这是我们要用到actuator的refresh端点，手动刷新。**
 
@@ -13146,6 +13194,7 @@ management:
 
 
 ![image-20210303210634591](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210303210634591.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
@@ -13188,19 +13237,15 @@ management:
 **需要配置环境变量**
 
 ![image-20210304210138086](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210304210138086.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
 ![image-20210304210211142](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210304210211142.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
-
-
-
-
-
-
-
+ 
 **（3.）检查是否安装成功**
 
 **打开cmd，输入erl，有输出说明成功**
@@ -13294,6 +13339,7 @@ spring:
 **5.在postman发送刷新命令即可。http://localhost:9001/actuator/bus-refresh**
 
 ![image-20210304204839588](C:\Users\youzhengjie666\AppData\Roaming\Typora\typora-user-images\image-20210304204839588.png)
+![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
 
 
