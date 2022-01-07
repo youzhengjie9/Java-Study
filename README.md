@@ -1,13 +1,13 @@
 # Java-Study
 
 #### 介绍
-**作者自己的手写笔记，这只是一小部分(大概只占了30%)，全都是一人完成，如有错误请见谅。**
+**作者自己的手写笔记，这只是一小部分(大概只占了30%)，全都是一人完成，如有错误请见谅。该文档将会持续完善，直至不从事Java行业**
 
 ## Java并发编程（多线程高并发）
 
-## 创建线程的三种方式
+### 创建线程的三种方式
 
-### 继承于Thread类
+#### 继承于Thread类
 
 ```java
 public class createThreadTest1 {
@@ -42,7 +42,7 @@ class thread01 extends Thread{
 
 
 
-### 实现Runnable接口（推荐）
+#### 实现Runnable接口（推荐）
 
 **因为Java不支持多继承，所以用实现接口的方法可扩展性会更高，让唯一的继承留个更加有用的类**
 
@@ -109,7 +109,7 @@ class thread02 implements Runnable{
 
 
 
-### 实现Callable接口
+#### 实现Callable接口
 
 **callable实现比较复杂**
 
@@ -137,7 +137,7 @@ class thread03 implements Callable<String>{
 }
 ```
 
-## Thread常用方法
+### Thread常用方法
 
 
 
@@ -184,7 +184,7 @@ class thread01 implements Runnable{
 }
 ```
 
-### join方法
+#### join方法
 
 **注意：join方法只能在开启线程之后在使用，不然就会无效，也就是先start（）再join（）**
 
@@ -241,7 +241,7 @@ public class threadJoinTest {
 
 
 
-## 计数器
+### 计数器
 
 ```java
 public class threadTimer {
@@ -289,9 +289,9 @@ class timer implements Runnable{
 
 
 
-## 模拟并发（多线程）抢票=>超卖问题
+### 模拟并发（多线程）抢票=>超卖问题
 
-### 单线程抢票，没有安全问题
+#### 单线程抢票，没有安全问题
 
 ```java
 public class threadTicket {
@@ -334,7 +334,7 @@ class ticket implements Runnable{
 
 
 
-### 多线程抢票出现安全问题
+#### 多线程抢票出现安全问题
 
 ```java
 public class threadTicket {
@@ -387,7 +387,7 @@ class ticket implements Runnable{
 
 
 
-### 解决多线程抢票线程不安全问题
+#### 解决多线程抢票线程不安全问题
 
 **其实多线程抢票为啥会出现线程不安全问题，原因就是'  i--  ' 语句。i--不是原子操作，肯定会出线程安全问题**
 
@@ -557,11 +557,11 @@ class ticket implements Runnable{
 
 ```
 
-## 多线程的原子性、可见性、有序性
+### 多线程的原子性、可见性、有序性
 
 
 
-### 原子性
+#### 原子性
 
 **保证原子性有两个方法：1.使用锁  2.CAS指令**
 
@@ -668,13 +668,13 @@ class ticket implements Runnable{
 
 
 
-### 可见性（演示不出来）
+#### 可见性（演示不出来）
 
 
 
-### 有序性
+#### 有序性
 
-## 多线程锁问题
+### 多线程锁问题
 
 **锁对象不同不能同步**
 
@@ -782,7 +782,7 @@ class subThread1 implements Runnable{
 
 ```
 
-### 多线程出现异常自动释放锁
+#### 多线程出现异常自动释放锁
 
 ```java
 public class lockException {
@@ -824,7 +824,7 @@ class subThread implements Runnable{
 
 
 
-### 死锁（重要）
+#### 死锁（重要）
 
 **死锁的原理：有两个线程分别是线程A、B ，两把锁1、2 ，线程A拿到了锁1，线程B拿到了锁2，线程A没有释放锁1，且必须要拿到锁2才能释放锁1（也就是执行完线程A所有代码），反之，线程B没有释放锁2，但是有一定要获得锁1才能执行完线程B的代码，然后两个线程为了对方的锁一直在僵持，互不相让，这就造成了死锁**
 
@@ -881,7 +881,7 @@ class subThread3 implements Runnable{
 
 
 
-## 原子类AtomicXXX
+### 原子类AtomicXXX
 
 **让两个子线程和一个main线程去共同减少count**
 
@@ -952,7 +952,7 @@ public class atomicIntegerTest {
 
 **方式二：**
 
-### 原子类（AtomicInteger/AtomicLong）
+#### 原子类（AtomicInteger/AtomicLong）
 
  ```java
 public class atomicIntegerTest1 {
@@ -1009,7 +1009,7 @@ public class atomicIntegerTest1 {
 
 
 
-### 多线程操作数组线程不安全
+#### 多线程操作数组线程不安全
 
 ```java
 public class atomicIntegerArrayTest {
@@ -1052,7 +1052,7 @@ class atomicArrayThread implements Runnable{
 
 
 
-#### 解决方案（加锁和原子数组）
+##### 解决方案（加锁和原子数组）
 
 **方法一：加锁**
 
@@ -1110,11 +1110,11 @@ class atomicArrayThread implements Runnable{
 
 
 
-## 线程通信
+### 线程通信
 
 **线程通信有很多种，比如wait()/notify()机制，管道流（pipeXXX）通信，可重入锁的Condition对象的await()/signal()方法等等**
 
-### wait()/notify()机制实现线程通信
+#### wait()/notify()机制实现线程通信
 
 **wait()方法和sleep()方法都是阻塞方法，但是也有区别，wait()方法会释放锁、sleep()方法不会释放锁，并且wait方法必须要有锁对象，由锁对象进行调用wait方法，而sleep方法不用锁对象，wait方法是Object类的，sleep方法是Thread类的。**
 
@@ -1122,9 +1122,9 @@ class atomicArrayThread implements Runnable{
 
 **注意：notify/notifyAll和wait方法都是要用同一个锁对象去调用才能唤醒对方。。。。。。**
 
-### 生产者消费者模式
+#### 生产者消费者模式
 
-#### 一个生产者和一个消费者操作值
+##### 一个生产者和一个消费者操作值
 
 **需求：我们要实现一个生产者生产好一份菜（value值）就去通知消费者，消费者去拿菜，如果生产者没有生产好，那消费者就等待**
 
@@ -1215,7 +1215,7 @@ public class ThreadCommunicationTest1 {
 
 
 
-#### 多个生产者和多个消费者操作值
+##### 多个生产者和多个消费者操作值
 
 **多个线程的生产者消费者模式必须不能用notify了，要用notifyAll**
 
@@ -1318,7 +1318,7 @@ public class ThreadCommunicationTest2 {
 
 
 
-#### 一个生产者和一个消费者操作栈（用List集合去模拟）
+##### 一个生产者和一个消费者操作栈（用List集合去模拟）
 
 ```java
 public class ThreadCommunicationTest3 {
@@ -1407,7 +1407,7 @@ public class ThreadCommunicationTest3 {
 
 
 
-#### 多个生产者和多个消费者操作栈（用List集合去模拟）
+##### 多个生产者和多个消费者操作栈（用List集合去模拟）
 
 ```java
 public class ThreadCommunicationTest4 {
@@ -1515,7 +1515,7 @@ public class ThreadCommunicationTest4 {
 
 
 
-### 利用管道流通信
+#### 利用管道流通信
 
 ```java
 public class pipeStreamTest {
@@ -1588,7 +1588,7 @@ public class pipeStreamTest {
 
 ```
 
-### Condition通信（用到了显式锁）
+#### Condition通信（用到了显式锁）
 
 **注意：======notify和signal其实差不多，都是用来通知正在等待的线程的，但是notify是随机通知，signal是定向通知**
 
@@ -1663,7 +1663,7 @@ public class conditionTest {
 
 
 
-## ThreadLocal
+### ThreadLocal
 
 ```java
 public class threadLocalTest {
@@ -1704,7 +1704,7 @@ public class threadLocalTest {
 
 
 
-## Lock显式锁
+### Lock显式锁
 
 **我们使用Lock锁都是使用它的实现类，常用的：可重入锁，可重入读写锁（读锁、写锁）**
 
@@ -1714,7 +1714,7 @@ public class threadLocalTest {
 
 
 
-### ReentrantLock的使用
+#### ReentrantLock的使用
 
 **1.创建一个锁对象**
 
@@ -1797,7 +1797,7 @@ public class reentrantLockTest1 {
 
 
 
-### 可重入锁特性
+#### 可重入锁特性
 
 ```java
 public class reentrantLockTest2 {
@@ -1854,7 +1854,7 @@ public class reentrantLockTest2 {
 
 
 
-### tryLock方法（解决死锁）
+#### tryLock方法（解决死锁）
 
 **tryLock方法可以有效的解决死锁，因为他会在得不到锁的时候放弃获取，死锁的原因就是互相持有对方想要的锁，而都不肯释放**
 
@@ -1968,9 +1968,9 @@ public class trylockTest {
 
 
 
-### 读写锁（ReadWriteLock）
+#### 读写锁（ReadWriteLock）
 
-#### 读读共享
+##### 读读共享
 
 **只有读锁时，是共享的，也就是可以同时多个线程进入readLock内**
 
@@ -2019,7 +2019,7 @@ public class readLockTest {
 
 
 
-#### 写写互斥
+##### 写写互斥
 
 **写锁就相当于互斥锁（synchronized、lock）**
 
@@ -2072,7 +2072,7 @@ public class writeLockTest {
 
 
 
-#### 读写互斥
+##### 读写互斥
 
 **同时有读锁和写锁就会互斥**
 
@@ -2138,9 +2138,9 @@ public class readWriteLockTest {
 
 
 
-## 线程池ThreadPool
+### 线程池ThreadPool
 
-### 线程池的简单使用
+#### 线程池的简单使用
 
 **固定大小的线程池**
 
@@ -2229,11 +2229,11 @@ public class threadPoolTest02 {
 
 ```
  
-## Java设计模式
+### Java设计模式
 
-## 创建型
+### 创建型
 
-### 单例模式
+#### 单例模式
 
 **单例模式步骤：**
 
@@ -2245,7 +2245,7 @@ public class threadPoolTest02 {
 
 
 
-#### 饿汉式
+##### 饿汉式
 
 **所谓的饿汉式，也就是提前new好对象，再提供一个方法，返回这个new好的对象实例。还有要把构造器私有化，通过方法new对象，控制到只有一个实例对象**
 
@@ -2368,7 +2368,7 @@ public class Runtime {
 
 
 
-#### 懒汉式（不加锁，不安全）
+##### 懒汉式（不加锁，不安全）
 
 **懒汉式是线程不安全的，但是他具有懒加载机制，也就是用到才new对象，这样不会造成资源的浪费**
 
@@ -2450,7 +2450,7 @@ class lazyNotSyncMain{
 
 
 
-#### 懒汉式（加锁，安全）
+##### 懒汉式（加锁，安全）
 
 ```java
 public class lazySync {
@@ -2535,7 +2535,7 @@ class lazySyncMain{
 
 
 
-#### 利用静态内部类
+##### 利用静态内部类
 
 ```java
 public class staticClass {
@@ -2611,7 +2611,7 @@ class staticClassMain{
 
 
 
-#### 利用枚举(不太懂)
+##### 利用枚举(不太懂)
 
  
 
@@ -2619,7 +2619,7 @@ class staticClassMain{
 
 
 
-### 原型模式(多例)
+#### 原型模式(多例)
 
 **原型模式其实就是复制的意思，包含着深拷贝和浅拷贝。浅拷贝复制的引用数据类型变量只是地址，深拷贝则是内容**
 
@@ -2627,7 +2627,7 @@ class staticClassMain{
 
 **注意：实现了Cloneable的类才能拷贝（克隆）**
 
-#### 浅拷贝
+##### 浅拷贝
 
 ```java
 public class person implements Cloneable {
@@ -2784,7 +2784,7 @@ person.getFirend().hashCode()==p1.getFirend().hashCode():true
 
 
 
-#### 深拷贝
+##### 深拷贝
 
 **深拷贝有多种方法，这里我们只使用一种，也是最简单的一种**
 
@@ -2956,7 +2956,7 @@ person.getFirend().hashCode()==p1.getFirend().hashCode():false
 
 
 
-### 工厂模式
+#### 工厂模式
 
 **工厂模式分为简单工厂和工厂方法,工厂模式和抽象工厂模式不是一个概念**
 
@@ -2968,7 +2968,7 @@ person.getFirend().hashCode()==p1.getFirend().hashCode():false
 
 
 
-#### 简单工厂模式(推荐使用)
+##### 简单工厂模式(推荐使用)
 
 **总结：主要依靠if elseif 在一个大的工厂类中根据不同的传参来new不同的对象，这个大的工厂必须要是一个品类，比如手机工厂和电脑工厂要分开，后面的抽象工厂模式才能通过一个品牌分类，这里简单工厂和工厂方法只能一个种类的工厂（但是可以写多个工厂类）**
 
@@ -3148,7 +3148,7 @@ iPhone12 Pro max
 
 
 
-#### 工厂方法模式（拆分简单工厂）
+##### 工厂方法模式（拆分简单工厂）
 
 **总结：工厂方法也就是为了解决简单工厂不满足设计模式原则中的开闭原则，工厂方法不采用简单工厂那种在一个大工厂（单一类型，比如手机工厂、电脑工厂要分开不同的工厂）中通过if elseif 根据不同的传参来new不同的对象了，而是把这个大的工厂拆分。拆分成一个工厂接口，**
 
@@ -3333,7 +3333,7 @@ public class factoryMethodMain {
 
 
 
-### 抽象工厂模式（很大的工厂）
+#### 抽象工厂模式（很大的工厂）
 
 **总结：抽象工厂模式是生产一个品牌的任何产品（比如某一个抽象工厂，小米工厂去实现它，那么小米工厂就是抽象工厂的子类，也就是说小米工厂可以小米品牌下的所有商品，也就是说这个小米工厂可以生产小米手机、小米笔记本、小米电脑、小米耳机等等。。。），而工厂模式不可以，工厂模式只能生产同一类产品，比如就生产笔记本，但是。如果抽象工厂定义的生产产品只有一类品牌产品，那么这个抽象工厂模式就和工厂模式没有区别了。（当且仅当抽象工厂只有一个抽象方法时）**
 
@@ -3507,7 +3507,7 @@ public class abstractFactoryMain {
 
 
 
-### 建造者模式
+#### 建造者模式
 
 **用于创建复杂对象，比如构造方法多变的情况下使用建造者模式很好用**
 
@@ -3755,15 +3755,15 @@ public class builderMain {
 
 
 
-## 结构型
+### 结构型
 
 
 
-### 代理模式
+#### 代理模式
 
 
 
-#### 静态代理
+##### 静态代理
 
 **被代理的类**
 
@@ -3861,7 +3861,7 @@ logger被代理了===后
 
 
 
-#### 动态代理（JDK动态代理）
+##### 动态代理（JDK动态代理）
 
 
 
@@ -3972,7 +3972,7 @@ public class loggerProxyMain {
 
 
 
-### 装饰器模式
+#### 装饰器模式
 
 **我们可以把装饰器分为主菜和配菜，配菜就是装饰器，而主菜就是被装饰的**
 
@@ -4125,7 +4125,7 @@ public class main {
 
 
 
-### 适配器模式
+#### 适配器模式
 
 **适配器模式：就是把原本互不兼容的两样东西或者格式，转换成可以兼容**
 
@@ -4135,7 +4135,7 @@ public class main {
 
 
 
-#### 类适配器
+##### 类适配器
 
 **公式：适配器类要继承src（原来的类），并实现dest（目标）接口**
 
@@ -4228,7 +4228,7 @@ public class Test {
 
 
 
-#### 对象适配器
+##### 对象适配器
 
 
 
@@ -4303,7 +4303,7 @@ public class Test {
 
  
 
-#### 接口适配器
+##### 接口适配器
 
 **为何有接口适配器：我们上面说的两种适配器方式都有一个缺点：就是我们上面两种适配器都需要实现目标接口，当目标接口有多个适配方法时，我们都要对它进行实现，而我们不需要全部实现，只需要实现其中一个即可，我们的接口适配器就是为了解决这个问题的。**
 
@@ -4449,7 +4449,7 @@ class main{
 
 
 
-### 享元模式
+#### 享元模式
 
 **享元模式：“享”是共享 ，“元”是对象 ，享元模式也就是一种利用共享技术对实例对象进行共享，提高实例对象的复用性，和节省资源的开销，减少对象的创建，应用在大量的“”相似“”对象，但是这些对象只有一些不同，我们可以用这个模式。**
 
@@ -4745,7 +4745,7 @@ sina{type='新浪', color='利用享元模式定制对象', messages=[hello713],
 
 
 
-#### 多线程环境下的问题
+##### 多线程环境下的问题
 
 **只需在getWebsiteByFactory方法上加锁即可**
 
@@ -4769,7 +4769,7 @@ public class simpleFactory {
 
 
 
-### 组合模式（树型结构）
+#### 组合模式（树型结构）
 
 
 
@@ -5040,7 +5040,7 @@ public class client {
 
 
 
-### 外观模式
+#### 外观模式
 
 **为什么会有外观模式？外观模式能解决什么？其实就是把其他对象调用方法封装到外观类上，我们只需要通过调用外观类的方法就可以调用其他类的方法**
 
@@ -5050,7 +5050,7 @@ public class client {
 
 **使用两种方法实现案例“买水果问题”。。**
 
-#### **传统方式（买水果问题）：**
+##### **传统方式（买水果问题）：**
 
 **苹果实体类：**
 
@@ -5247,7 +5247,7 @@ public class client {
 
 
 
-#### 外观模式（买水果问题）：
+##### 外观模式（买水果问题）：
 
 **上面实体类不变，只需要添加一个门面类（外观类）即可**
 
@@ -5335,7 +5335,7 @@ public class client {
 
 
 
-### 桥接模式
+#### 桥接模式
 
  **使用桥接类和需要被桥接的接口进行桥接**
 
@@ -5474,11 +5474,11 @@ public class client_bridge {
 
 
 
-## 行为型
+### 行为型
 
 
 
-### 观察者模式
+#### 观察者模式
 
 
 
@@ -5653,7 +5653,7 @@ public class client {
 
  
 
-### 备忘录模式
+#### 备忘录模式
 
 **备忘录模式：可以用来备份数据和恢复**
 
@@ -5662,7 +5662,7 @@ public class client {
 
  
 
-### 责任链模式
+#### 责任链模式
 
 
 
@@ -5671,13 +5671,13 @@ public class client {
 
  
 
-### 策略模式
+#### 策略模式
 
 
 
 
 
-### 模板模式
+#### 模板模式
 
 
 
@@ -5689,7 +5689,7 @@ public class client {
 
 **RabbitMQ在上面的各种消息队列中对于消息的保护是十分到位的（不会丢失消息），相对于kafka，虽然kafka性能十分强悍，在大数据中处理海量数据游刃有余，但是kafka容易丢失消息，而RabbitMQ虽然性能不及kafka，但是也不会很差，对于消息要求完整性很高的系统中用RabbitMQ十分好。**
 
-## 安装RabbitMQ环境
+### 安装RabbitMQ环境
 
 **总教程：https://www.cnblogs.com/saryli/p/9729591.html**
 
@@ -5734,11 +5734,11 @@ public class client {
 
 
 
-## RabbitMQ的5种模型（重点**）
+### RabbitMQ的5种模型（重点**）
 
 
 
-### 导入依赖
+#### 导入依赖
 
 ```xml
 		 <dependency>
@@ -5748,7 +5748,7 @@ public class client {
         </dependency>
 ```
 
-### 基本消息模型(hello world)
+#### 基本消息模型(hello world)
 
 **生产者**
 
@@ -5856,7 +5856,7 @@ public class comsumer {
 
  
 
-### work queue模型
+#### work queue模型
 
 **为什么会引入这么一个消息队列模型？？？？**
 
@@ -5866,7 +5866,7 @@ public class comsumer {
 
 
 
-#### 未实现能者多劳机制
+##### 未实现能者多劳机制
 
 
 
@@ -5990,7 +5990,7 @@ public class comsumer2 {
 
 
 
-#### 实现了能者多劳机制
+##### 实现了能者多劳机制
 
 **要实现能者多劳，只需要在消费者修改几处代码即可**
 
@@ -6091,7 +6091,7 @@ public class comsumer2 {
 
 
 
-### fanout模型（广播模型）性能最好
+#### fanout模型（广播模型）性能最好
 
 **特点：凡是和这个fanout交换机绑定的临时队列，都能收到消息**
 
@@ -6249,7 +6249,7 @@ public class comsumer2 {
 
 
 
-### direct模型(直连)（默认） 
+#### direct模型(直连)（默认） 
 
 **特点：根据路由键直接匹配**
 
@@ -6367,7 +6367,7 @@ public class comsumer2 {
 
  
 
-### topic模型(通配符)
+#### topic模型(通配符)
 
 **特点：通配符(#号和*号)，也可以不使用通配符。**
 
@@ -7078,13 +7078,13 @@ public class deadLetterQueue {
 
 ## Elasticsearch7.6.1笔记
 
-## elasticsearch概念
+### elasticsearch概念
 
 **elasticsearch是一个实时的分布式全文检索引擎，elasticsearch是由Lucene作为底层构建的，elasticsearch采用的不是一般的正排索引（类似于mysql索引），而是用倒排索引，好处是模糊搜索速度极快。。。**
 
 **elasticsearch的操作都是使用JSON格式发送请求的**
 
-## elasticsearch的底层索引
+### elasticsearch的底层索引
 
 **我们知道mysql的like可以作为模糊搜索，但是速度是很慢的，因为mysql的like模糊搜索不走索引，因为底层是正排索引，所谓的正排索引，也就是利用完整的关键字去搜索。。。。而elasticsearch的倒排索引则就是利用不完整的关键字去搜索。原因是elasticsearch利用了“分词器”去对每个document分词（每个字段都建立了一个倒排索引，除了documentid），利用分出来的每个词去匹配各个document**
 
@@ -7128,7 +7128,7 @@ public class deadLetterQueue {
 
 
 
-## elasticsearch和关系型数据库（MySQL）
+### elasticsearch和关系型数据库（MySQL）
 
 **我们暂且可以把es和mysql作出如下比较**
 
@@ -7142,9 +7142,9 @@ public class deadLetterQueue {
 
 
 
-## elasticsearch的一些注意点***
+### elasticsearch的一些注意点***
 
-### 跨域问题
+#### 跨域问题
 
 **打开elasticsearch的config配置文件elasticsearch.yml**
 
@@ -7155,7 +7155,7 @@ http.cors.enabled: true
 http.cors.allow-origin: "*"
 ```
 
-### 占用内存过多导致卡顿问题
+#### 占用内存过多导致卡顿问题
 
 **因为elasticsearch是一个非常耗资源的，从elasticsearch的配置jvm配置文件就可以看到，elasticsearch默认启动就需要分配给jvm1个g的内存。我们可以对它进行修改**
 
@@ -7177,7 +7177,7 @@ http.cors.allow-origin: "*"
 
 
 
-### elasticsearch和kibana版本问题
+#### elasticsearch和kibana版本问题
 
 **如果在启动就报错，或者其他原因，我们要去看一看es和kibana的版本是否一致，比如es用的是7.6  ，那么kibana也要是7.6**
 
@@ -7187,9 +7187,9 @@ http.cors.allow-origin: "*"
 
 
 
-## ik分词器
+### ik分词器
 
-### ik分词器的使用
+#### ik分词器的使用
 
 **ik分词器是一种中文分词器，但是比如有一些词（例如人名）它是不会分词的，所以我们可以对它进行扩展。**
 
@@ -7304,7 +7304,7 @@ GET _analyze
 
 
 
-### ik分词器分词的扩展
+#### ik分词器分词的扩展
 
 ```text
 GET _analyze
@@ -7450,7 +7450,7 @@ GET _analyze
 ```
 
 
-## elasticsearch的操作（REST风格）
+### elasticsearch的操作（REST风格）
 
 **下面的操作使用Kibana作为可视化工具去操作es ,也可以使用postman去操作**
 
@@ -7474,7 +7474,7 @@ POST	localhost:9100/索引名称/文档类型/_search	查询所有文档**
 
 
 
-### 创建索引
+#### 创建索引
 
 **模板：PUT /索引名**
 
@@ -7503,7 +7503,7 @@ PUT /hello03
 
 
 
-### 删除索引
+#### 删除索引
 
 ```text
 DELETE hello01
@@ -7513,7 +7513,7 @@ DELETE hello01
 ```
 
 
-### 往索引插入数据（document）
+#### 往索引插入数据（document）
 
 ```text
 PUT /hello03/_doc/1
@@ -7606,7 +7606,7 @@ PUT /hello03/_doc/1
 
 
 
-### 删除索引中指定的数据（根据id）
+#### 删除索引中指定的数据（根据id）
 
 ```text
 DELETE hello01/_doc/004
@@ -7622,7 +7622,7 @@ DELETE hello01/_doc/004
 
 
 
-### 修改索引中指定的数据
+#### 修改索引中指定的数据
 
 ```text
 POST hello02/_update/001
@@ -7637,7 +7637,7 @@ POST hello02/_update/001
 
 
 
-### 删除索引中指定的数据
+#### 删除索引中指定的数据
 
 ```text
 DELETE hello02/_doc/001
@@ -7651,7 +7651,7 @@ DELETE hello02/_doc/001
 
 
 
-### 创建映射字段
+#### 创建映射字段
 
 ```text
 PUT /hello05
@@ -7716,7 +7716,7 @@ PUT /hello05
 
 
 
-#### 指定索引映射字段只能使用一次***
+##### 指定索引映射字段只能使用一次***
 
 **我们再重新往hello05索引添加mapping映射：**
 
@@ -7777,7 +7777,7 @@ PUT /hello05
 
 
 
-#### 使用"_mapping"，往索引添加字段
+##### 使用"_mapping"，往索引添加字段
 
 **我们上面说过，mapping映射字段不能修改，但是没有说不能添加，添加的方式有一些不同。**
 
@@ -7801,7 +7801,7 @@ PUT hello05/_mapping
 
 
 
-#### 使用_reindex实现数据迁移
+##### 使用_reindex实现数据迁移
 
 
 
@@ -7855,7 +7855,7 @@ POST _reindex
  
 
 
-### 获取索引信息
+#### 获取索引信息
 
 ```text
 GET hello05
@@ -7866,7 +7866,7 @@ GET hello05
 
 
 
-### 获取指定索引中所有的记录（_search）
+#### 获取指定索引中所有的记录（_search）
 
 ```text
 GET hello05/_search
@@ -7881,7 +7881,7 @@ GET hello05/_search
 
  
 
-### 获取索引指定的数据
+#### 获取索引指定的数据
 
 
 
@@ -7893,7 +7893,7 @@ GET hello05/_doc/1
 
 
 
-### 获取指定索引全部数据(match_all:{})
+#### 获取指定索引全部数据(match_all:{})
 
 ```text
 GET hello05/_search
@@ -7917,7 +7917,7 @@ GET hello05/_search
 ```
 
 
-### match查询(只允许单个查询条件)
+#### match查询(只允许单个查询条件)
 
 **match查询是可以把查询条件进行分词的。**
 
@@ -7977,7 +7977,7 @@ GET hello05/_search
 }
 ````
 
-#### 如果我们再加多一个查询条件
+##### 如果我们再加多一个查询条件
 
 ```text
 GET hello05/_search
@@ -8022,7 +8022,7 @@ GET hello05/_search
 
 
 
-### 精准查询(term)和模糊查询(match)区别
+#### 精准查询(term)和模糊查询(match)区别
 
 **match:**
 
@@ -8141,7 +8141,7 @@ GET hello05/_search
 
 
 
-###  multi_match实现类似于百度搜索
+####  multi_match实现类似于百度搜索
 
 **match和multi_match的区别在于match只允许传入的数据在一个字段上搜索，而multi_match可以在多个字段中搜索**
 
@@ -8239,7 +8239,7 @@ GET goods/_search
 
  
 
-### 短语(精准)搜索(match_phrase)
+#### 短语(精准)搜索(match_phrase)
 
 ```text
 GET goods/_search
@@ -8279,7 +8279,7 @@ GET goods/_search
 }
 ```
  
-### 指定查询显示字段(_source)
+#### 指定查询显示字段(_source)
 
 **elasticsearch默认的显示字段规则类似于MYSQL的select * from xxx      ，我们可以自定义成类似于select id,name from xxx**
 
@@ -8343,7 +8343,7 @@ GET goods/_search
 ```
  
 
-### 排序sort
+#### 排序sort
 
 **因为前面设计索引mapping失误，price没有进行设置，导致price是text类型，无法进行排序和filter range，所以我们再添加一个字段，od**
 
@@ -8387,7 +8387,7 @@ GET goods/_search
 
  
 
-### 分页
+#### 分页
 
 ```text
 GET goods/_search
@@ -8466,7 +8466,7 @@ GET goods/_search
 
  
 
-### 字段高亮（highlight）
+#### 字段高亮（highlight）
 
 **可以选择一个或者多个字段高亮，然后被选择的这些字段如果被条件匹配到则会默认加em标签**
 
@@ -8636,7 +8636,7 @@ GET goods/_search
 
 ```
  
-#### 模仿百度搜索高亮
+##### 模仿百度搜索高亮
 
 ![image-20210417165852357](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210417165852357.png)
 
@@ -8733,7 +8733,7 @@ GET goods/_search
 }
 ```
  
-### bool查询(用作于多条件查询)
+#### bool查询(用作于多条件查询)
 
 **类似于MYSQL的and  or**
 
@@ -8888,7 +8888,7 @@ GET goods/_search
 
 ````
 
-### 过滤器，区间条件（filter  range）
+#### 过滤器，区间条件（filter  range）
 
 **比如我们要实现，输入title=xx，我们如果想得到price>4000作为一个条件，可以用到这个。**
 
@@ -8954,7 +8954,7 @@ GET goods/_search
 
  
 
-### 查看整个es的索引信息
+#### 查看整个es的索引信息
 
 ```text
 GET _cat/indices?v
@@ -8962,9 +8962,9 @@ GET _cat/indices?v
 
 
 
-## elasticsearch的Java Api
+### elasticsearch的Java Api
 
-### 准备阶段
+#### 准备阶段
 
 **1.导入elasticsearch高级客户端依赖和elasticsearch依赖（注意版本要和本机的es版本一致）,我们本机现在用的是7.6.1的es**
 
@@ -9062,11 +9062,11 @@ public class esConfig {
 
    
 
-### 索引操作
+#### 索引操作
 
 **java elasticsearch api操作索引都是用restHighLevelClient.indices().xxxxx()的格式**
 
-#### 创建索引
+##### 创建索引
 
 ```java
 //创建索引
@@ -9088,7 +9088,7 @@ public class esConfig {
 
 
 
-#### 删除索引
+##### 删除索引
 
 ```java
 //删除索引
@@ -9109,7 +9109,7 @@ public class esConfig {
 
 
 
-#### 检查索引是否存在
+##### 检查索引是否存在
 
 ```java
 //检查索引是否存在
@@ -9135,13 +9135,13 @@ public class esConfig {
 
 
 
-### 文档操作
+#### 文档操作
 
 
 
 
 
-#### 创建指定id的文档
+##### 创建指定id的文档
 
 ```java
 //创建文档
@@ -9182,7 +9182,7 @@ public class esConfig {
 
 
 
-#### 删除指定id的文档
+##### 删除指定id的文档
 
 
 
@@ -9208,7 +9208,7 @@ public class esConfig {
 
 
 
-#### 修改指定id的文档
+##### 修改指定id的文档
 
 ```java
 //修改文档
@@ -9244,7 +9244,7 @@ public class esConfig {
 
 
 
-#### 获取指定id的文档
+##### 获取指定id的文档
 
 ```java
  //获取文档
@@ -9268,7 +9268,7 @@ public class esConfig {
 
 
 
-#### 搜索(匹配全文match_all)
+##### 搜索(匹配全文match_all)
 
 ```java
 //搜索(匹配全文match_all)
@@ -9308,7 +9308,7 @@ public class esConfig {
 
 
 
-#### 搜索(模糊查询match)
+##### 搜索(模糊查询match)
 
 ```java
 //模糊搜索match
@@ -9341,7 +9341,7 @@ public class esConfig {
 
 
 
-#### 搜索(多字段搜索multi_match)
+##### 搜索(多字段搜索multi_match)
 
 ```java
  //搜索(多字段搜索multi_match)
@@ -9372,7 +9372,7 @@ public class esConfig {
 
 
 
-#### 搜索(筛选字段fetchSource)
+##### 搜索(筛选字段fetchSource)
 
 **fetchsource方法相当于_source**
 
@@ -9417,7 +9417,7 @@ public class esConfig {
 
 
 
-#### 分页、排序、字段高亮
+##### 分页、排序、字段高亮
 
 **我们要把下面的es命令行代码转换成Java代码**
 
@@ -9533,7 +9533,7 @@ GET goods/_search
 
 
 
-#### 布尔搜索(bool)
+##### 布尔搜索(bool)
 
 **实现类似如下es代码：**
 
@@ -9640,11 +9640,11 @@ GET goods/_search
 
 
 
-### es实战(京东商品搜索)
+#### es实战(京东商品搜索)
 
 
 
-#### 从京东上爬取数据
+##### 从京东上爬取数据
 
 **1:导入依赖：**
 
@@ -9841,7 +9841,7 @@ public static void main(String[] args) {
 ## SpringBoot
 
 
-## 创建SpringBoot项目报错的问题
+### 创建SpringBoot项目报错的问题
 
 ![image-20210127162355056](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210127162355056.png)
 
@@ -9852,7 +9852,7 @@ public static void main(String[] args) {
 
 
  
-## 生成SpringBoot项目
+### 生成SpringBoot项目
 
 ![image-20210109152424990](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109152424990.png)
 ![image-20210109152519889](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109152519889.png)
@@ -9863,7 +9863,7 @@ public static void main(String[] args) {
 
 
 
-## SpringBoot的Hello World
+### SpringBoot的Hello World
 
 1.**在resources目录下的templates放页面**
 
@@ -9890,7 +9890,7 @@ public static void main(String[] args) {
 
 
 
-### 运行时的异常。-datasource
+#### 运行时的异常。-datasource
 
 ![image-20210109153300025](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109153300025.png)
 
@@ -9910,9 +9910,9 @@ spring.datasource.password=18420163207
 
 
 
-## SpringBoot运行原理
+### SpringBoot运行原理
 
-### **POM.XML**
+#### **POM.XML**
 
 ```xml
 <parent>
@@ -9963,7 +9963,7 @@ SpringBoot有父依赖。
 
 
 
-### SpringBoot的主程序
+#### SpringBoot的主程序
 
 ![image-20210109163611654](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210109163611654.png)
 
@@ -9974,7 +9974,7 @@ SpringBoot有父依赖。
 
 **上面短短的几句代码就可以把SpringBoot项目运行起来。说明里面的原理是很复杂的。**
 
-#### SpringBoot主程序注解
+##### SpringBoot主程序注解
 
 **点开@SpringBootApplication：**
 
@@ -10129,7 +10129,7 @@ private static Map<String, List<String>> loadSpringFactories(ClassLoader classLo
 
 
 
-#### SpringBoot主程序的Run方法：
+##### SpringBoot主程序的Run方法：
 
 **我们点进去run()，找到SpringApplication的构造器。**
 
@@ -10157,7 +10157,7 @@ private static Map<String, List<String>> loadSpringFactories(ClassLoader classLo
 
 ****
 
-## yml配置注入
+### yml配置注入
 
 **SpringBoot自带了application.properties，但是呢，SpringBoot更加推荐用yml或者yaml，不过本质上其实是差不多的，只是语法有些许不同罢了，yml和yaml会更加简洁**
 
@@ -10265,7 +10265,7 @@ class DemoApplicationTests {
 
 ------
 
-## 多环境切换
+### 多环境切换
 
 **在实际的开发中，我们可能会需要有多种环境，比如开发环境、测试环境、真实环境，我们如何做到这一点呢？**
 
@@ -10306,7 +10306,7 @@ server.port=8081
 
 ------
 
-## SpringBoot自动装配原理（不懂）
+### SpringBoot自动装配原理（不懂）
 
 
 
@@ -10439,7 +10439,7 @@ private static Map<String, List<String>> loadSpringFactories(ClassLoader classLo
 
 
 
-## 静态资源处理
+### 静态资源处理
 
 
 
@@ -10455,7 +10455,7 @@ private static Map<String, List<String>> loadSpringFactories(ClassLoader classLo
 
 
 
-### 欢迎页
+#### 欢迎页
 
 **我们先打开WebMvcAutoConfiguration，会看到如下代码**
 
@@ -10548,7 +10548,7 @@ WelcomePageHandlerMapping(TemplateAvailabilityProviders templateAvailabilityProv
 ![image-20210111235539517](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210111235539517.png)
 
 
-### 静态资源处理的两种方式
+#### 静态资源处理的两种方式
 
 **在WebMvcAutoConfiguration里面有一段代码，里面写着怎么处理静态资源**
 
@@ -10607,7 +10607,7 @@ WelcomePageHandlerMapping(TemplateAvailabilityProviders templateAvailabilityProv
 
 ------
 
-## SpringBoot+JDBC
+### SpringBoot+JDBC
 
 **1.导入JDBC和mysql的依赖**
 
@@ -10672,7 +10672,7 @@ class DemoApplicationTests {
 
 
 
-### SpringBoot原生JDBC
+#### SpringBoot原生JDBC
 
 
 
@@ -10712,7 +10712,7 @@ class DemoApplicationTests {
 
 
 
-### SpringBoot+JdbcTemplate
+#### SpringBoot+JdbcTemplate
 
 **JdbcTemplate是Spring对JDBC的封装，目的是让Jdbc更加容易使用**
 
@@ -10738,7 +10738,7 @@ class DemoApplicationTests {
 
 
 
-## SpringBoot+Druid
+### SpringBoot+Druid
 
 **因为我们在DataSourceAutoConfiguration类中看到如下代码：**
 
@@ -10762,7 +10762,7 @@ spring.datasource.type=com.alibaba.druid.pool.DruidDataSource
 
 
 
-### 添加Druid数据源的监控功能
+#### 添加Druid数据源的监控功能
 
 
 
@@ -10820,7 +10820,7 @@ public class myDruid {
 
 
 
-## SpringBoot+Mybatis
+### SpringBoot+Mybatis
 
 
 ![image-20210116152421022](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210116152421022.png)
@@ -10854,7 +10854,7 @@ public class myDruid {
 
 
 
-## **SpringBoot+Mybtis绑定异常解决**
+### **SpringBoot+Mybtis绑定异常解决**
 
 **绑定异常有很多种，当我们Mapper和Mapper.xml都绑定起来了，但是还报错。**
 
@@ -10888,7 +10888,7 @@ public class myDruid {
 
 
 
-##  SpringBoot异步任务
+###  SpringBoot异步任务
 
 **使用场景：比如我们发送验证码，从前端发送请求到后端是要等待的（网络通信是有延迟的），比如我们发送成功一个验证码需要3s，如果不是异步操作，我们就处于“单线程“的状态，会在3s内都无法在页面进行任何操作，这样用户体验感会很差，如果我们是异步任务，就相当于“多线程”，会单独的开启一个线程去发送验证码，另外一个线程以供用户操作页面，这样用户的体验感会更好。**
 
@@ -10944,7 +10944,7 @@ public class DemoApplication {
 
 
 
-## SpringBoot定时任务
+### SpringBoot定时任务
 
 **主要是运用cron表达式，进行定时的操作**
 
@@ -10977,7 +10977,7 @@ public class DemoApplication {
 
  
 
-## SpringBoot邮件任务
+### SpringBoot邮件任务
 
 **SpringBoot把原生java发送邮件的代码进行进一步的封装，使得原来十分繁琐的过程变得极其好用。**
 
@@ -11112,7 +11112,7 @@ class DemoApplicationTests {
 
 
 
-## SpringBoot+Shiro安全框架
+### SpringBoot+Shiro安全框架
 
 **1.先导入Shiro-spring的依赖**
 
@@ -11337,7 +11337,7 @@ public class testController {
 
 
 
-## 扩展MVC
+### 扩展MVC
 
 **扩展SpringMVC只需要去实现WebMvcConfigurer类就可以了，并且这个类是配置类**
 
@@ -11380,7 +11380,7 @@ public class myMvcConfig implements WebMvcConfigurer {
 
 
 
-## 页面国际化
+### 页面国际化
 
 ![image-20210127145329346](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210127145329346.png)
 
@@ -11499,7 +11499,7 @@ public class myLocaleConfig {
 
 
 
-## 搭建提供者、消费者模块
+### 搭建提供者、消费者模块
 
 **1：创建一个空Maven项目，删除`src`目录**
 
@@ -11841,7 +11841,7 @@ spring:
 
 ------
 
-## 引入注册中心SpringCloud Eureka
+### 引入注册中心SpringCloud Eureka
 
 
 
@@ -11993,7 +11993,7 @@ eureka:
 
 
 
-#### Bug：引入Eureka后报错。
+##### Bug：引入Eureka后报错。
 
 ![image-20210222160445890](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210222160445890.png)
 
@@ -12003,7 +12003,7 @@ eureka:
 
 
 
-## 搭建Eureka集群
+### 搭建Eureka集群
 
 **创建springcloud-02-eureka7002和7003两个模块**
 
@@ -12075,7 +12075,7 @@ eureka:
 
 
 
-## 搭建提供者集群(为了负载均衡)
+### 搭建提供者集群(为了负载均衡)
 
 **在8001和8002微服务中修改defaultZone。**
 
@@ -12184,7 +12184,7 @@ eureka:
 
 
 
-#### Bug：ribbon+restTemplate报错
+##### Bug：ribbon+restTemplate报错
 
 ![image-20210222232329911](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210222232329911.png)
 
@@ -12205,7 +12205,7 @@ spring:
 
 
 
-### 使用actuator功能
+#### 使用actuator功能
 
 ```yaml
 #暴露端点。使用actuator功能
@@ -12220,7 +12220,7 @@ management:
 
 
 
-## Feign/OpenFeign
+### Feign/OpenFeign
 
 
 
@@ -12313,7 +12313,7 @@ public class deptController {
 
 
 
-#### Bug：OpenFeign调用失败报错405
+##### Bug：OpenFeign调用失败报错405
 
 **错误类型：**
 
@@ -12400,11 +12400,11 @@ public interface deptService {
 
 
 
-## 断路器springcloud Hystrix
+### 断路器springcloud Hystrix
 
 
 
-### 服务降级
+#### 服务降级
 
 **在springcloud-02-comsumer-openFeign-dept80的Pom.xml**
 
@@ -12509,7 +12509,7 @@ protected HystrixCommandProperties(HystrixCommandKey key, HystrixCommandProperti
 
 
 
-#### 全局服务降级
+##### 全局服务降级
 
 **实现全局服务降级主要就是靠@DefaultProperties和@HystrixCommand**
 
@@ -12586,7 +12586,7 @@ public class deptController {
 
 
 
-### 服务熔断
+#### 服务熔断
 
 **Pom.xml**
 
@@ -12678,7 +12678,7 @@ public class SpringBootApplication8001 {
 
 
 
-### Hystrix-Dashboard
+#### Hystrix-Dashboard
 
 **创建子模块springcloud-02-hystrix-Dashboard8110**
 
@@ -12744,7 +12744,7 @@ public class springBootApplication8110 {
 
 
 
-#### Bug：Hystrix仪表盘连接不上
+##### Bug：Hystrix仪表盘连接不上
 
 ![image-20210227124135194](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210227124135194.png)
 
@@ -12791,7 +12791,7 @@ public class SpringBootApplication8001 {
 
 
 
-#### Bug：Hystrix仪表盘一直是loading
+##### Bug：Hystrix仪表盘一直是loading
 
 **解决方法：用openFeign去调用一下即可**
 
@@ -12802,7 +12802,7 @@ public class SpringBootApplication8001 {
 ![image-20210227170129598](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210227170129598.png)
 
 
-## 服务网关springcloud gateway
+### 服务网关springcloud gateway
 
 **小坑：1.注意===》gateWay不能有springBoot-Web的启动器，不然会报错。。。。。。。。**
 
@@ -12818,7 +12818,7 @@ public class SpringBootApplication8001 {
 
 
 
-### 配置gateway服务网关
+#### 配置gateway服务网关
 
 **1.创建子模块springcloud-02-gateWay9527**
 
@@ -12853,7 +12853,7 @@ spring:
 
 **4.然后再访问http://localhost:9527/queryAllDept?id=1**
 
-### gateway服务网关负载均衡（lb）
+#### gateway服务网关负载均衡（lb）
 
 **注意：需要把gateway当作提供者“”注册“”到注册中心eureka中，不然不能进行服务网关的负载均衡****
 
@@ -12915,7 +12915,7 @@ eureka:
 
 
 
-## 分布式配置中心springcloud config
+### 分布式配置中心springcloud config
 
 **1.创建gitee或者GitHub，并把配置文件上传到git**
 
@@ -12927,7 +12927,7 @@ eureka:
 
 **我们目的是拉取上面红框的配置文件**
 
-### 分布式配置中心服务器端（server）
+#### 分布式配置中心服务器端（server）
 
 **2.创建子模块springcloud-02-config-server9001**
 
@@ -12978,7 +12978,7 @@ public class springBootApplication9001 {
 
 
 
-### 分布式配置中心客户端（client）
+#### 分布式配置中心客户端（client）
 
 
 
@@ -13076,7 +13076,7 @@ public class testController {
 
 
 
-#### actuator手动刷新config-client
+##### actuator手动刷新config-client
 
 **修改如下：1.在controller加上@RefreshScope**
 
@@ -13140,13 +13140,13 @@ management:
 
 **就ok了！！！**
 
-#### 为什么要引入springcloud bus的原因
+##### 为什么要引入springcloud bus的原因
 
 **感想：假如有20个config-client，我们要去刷新他们，难道一个个去发送post请求/actuator/refresh????那肯定不行，这样可以是可以，但是效率太低了，所以我们就会引入消息总线springcloud bus，一次post刷新请求即可，不管有多少模块需要刷新。很方便**
 
 
 
-## 消息总线springcloud Bus
+### 消息总线springcloud Bus
 
 **引入消息总线springcloud bus不需要创建新的模块。。。。只需要用config server和config client即可**
 
@@ -13156,7 +13156,7 @@ management:
 
 
 
-### 安装rabbitMQ环境
+#### 安装rabbitMQ环境
 
 **总教程：https://www.cnblogs.com/saryli/p/9729591.html**
 
@@ -13201,7 +13201,7 @@ management:
 
 
 
-### 配置springcloud Bus
+#### 配置springcloud Bus
 
 **有了springcloud bus，我们只需要通知config server，config server就会去“”遍历“”config client，一个个发送刷新的通知，就比如一个个发送/actuator/refresh**
 
