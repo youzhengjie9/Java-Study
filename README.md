@@ -13275,3 +13275,337 @@ spring:
 
 ![image-20210304204839588](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/image-20210304204839588.png)
 
+
+
+## NIO+Netty
+
+### NIO三大组件
+#### Channel and Buffer
+Java NIO的核心：通道(Channel)和缓冲区(Buffer),通道是用来传输数据的,缓冲区是存储数据的。
+
+常见的Channel有以下四种，其中FileChannel主要用于文件传输，其余三种用于网络通信。
+* FileChannel
+* SocketChannel
+* DatagramChannel
+* ServerSocketChannel
+
+Buffer有几种，使用最多的是ByteBuffer
+* ByteBuffer
+  * MappedByteBuffer
+  * DirectByteBuffer
+  * HeapByteBuffer
+* ShortBuffer
+* IntBuffer
+* LongBuffer
+* FloatBuffer
+* DoubleBuffer
+* CharBuffer
+
+**8大基本数据类型除了boolean没有Buffer，其余的7种基本类型都有**
+
+#### Selector
+未使用Selector之前，有如下几种方案
+> 1.多线程技术
+
+**实现逻辑** :每一个连接进来都开一个线程去处理Socket。
+
+**缺点:**
+* 如果同时有100000个（**大量**）连接进来,系统大概率是挡不住的,而且线程会占用内存，会导致内存不足。
+* 线程需要进行上下文切换，成本高
+
+> 2.采用线程池技术
+
+**实现逻辑** :创建一个固定大小(系统能够承载的线程数)的线程池对象,去处理连接的请求，假如线程池大小为
+100个线程数，这时候同时并发连接1000个Socket，此时只有100个Socket会得到处理，其余的会阻塞。这样很好的防止了系统线程数
+过多导致线程占用内存大，不容易导致系统由于内存占用的问题而崩溃。
+
+**相对于第一种多线程技术处理客户端Socket,第二种方案使用线程池去处理连接会更好**,但是还是不够好
+
+**缺点:** 
+* 阻塞模式下，线程仅能处理一个连接，若socket连接一直未断开，则该线程无法处理其他socket。
+
+> 3.使用Selector选择器
+![img1.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/img1.png)
+
+
+selector的作用就是配合一个线程来管理多个channel,获取这些 channel 上发生的事件，这些 channel 工作在非阻塞模式下，当一个channel中没有执行任务时，可以去执行其他channel中的任务
+
+**注意：fileChannel因为是阻塞式的，所以无法使用selector**
+
+**使用场景：适合连接数多，但流量较少的场景**
+
+**流程：** 假如当前Selector绑定的Channels没有任何一个Channel触发了感兴趣的事件，
+则selector的select()方法会阻塞线程，直到channel触发了事件。这些事件发生后，select方法就会返回这些事件交给thread来处理。
+
+#### IO and NIO 区别
+
+**区别：**
+* IO是面向**流**的，NIO是面向缓冲区（**块**）的
+* Java IO的各种流是阻塞的，而Java NIO是非阻塞的
+* Java NIO的选择器允许一个单独的线程来监视多个输入通道
+
+> 普通io读取文件
+
+```java
+@Test
+    public void test01(){
+
+        try {
+            FileInputStream fileInputStream = new FileInputStream("data.txt");
+
+            long start = System.currentTimeMillis();
+
+            byte bytes[]=new byte[1024];
+
+            int n=-1;
+            while ((n=fileInputStream.read(bytes,0,1024))!=-1){
+
+                String s = new String(bytes,0,n,"utf-8");
+
+                System.out.println(s);
+            }
+            long end = System.currentTimeMillis();
+            System.out.println("普通io共耗时："+(end-start)+"ms");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+    }
+```
+
+> 缓冲流IO读取文件
+
+```java
+
+@Test
+    public void test02(){
+
+        try {
+            BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream("data.txt"));
+
+            long start = System.currentTimeMillis();
+
+            byte bytes[]=new byte[1024];
+
+            int n=-1;
+
+            while ((n=bufferedInputStream.read(bytes,0,1024))!=-1){
+
+                String s = new String(bytes,0,n,"utf-8");
+
+                System.out.println(s);
+            }
+
+            long end = System.currentTimeMillis();
+            System.out.println("缓冲流io共耗时："+(end-start)+"ms");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+```
+
+> Nio-FileChannel读取文件
+
+```java
+
+//方式1
+@Test
+    public void test3(){
+
+        try {
+            //获取channel,FileInputStream生成的channel只有读的权利
+            FileChannel channel = new FileInputStream("data.txt").getChannel();
+            ByteBuffer byteBuffer = ByteBuffer.allocate(1024); //开辟一块缓冲区
+
+            long start = System.currentTimeMillis();
+            while (true){
+
+                //写入操作
+                int read = channel.read(byteBuffer); //如果read=-1，说明缓存“块”没有数据了
+
+                if(read==-1){
+                    break;
+                }else {
+
+                    byteBuffer.flip();//读写切换，切换为读的操作，实质上就是把limit=position,position=0
+
+                    String de = StandardCharsets.UTF_8.decode(byteBuffer).toString();
+                    System.out.println(de);
+
+                    byteBuffer.clear(); //切换为写
+                }
+            }
+            long end = System.currentTimeMillis();
+            System.out.println("heap nio共耗时："+(end-start)+"ms");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+//方式2
+@Test
+    public void test4(){
+
+        ByteBuffer byteBuffer = ByteBuffer.allocate(10);
+
+        byteBuffer.put("helloWorld".getBytes());
+
+        debugAll(byteBuffer);
+
+        byteBuffer.flip(); //读模式
+
+        while (byteBuffer.hasRemaining()){
+
+            System.out.println((char)byteBuffer.get());
+        }
+
+
+        byteBuffer.flip();
+
+        System.out.println(StandardCharsets.UTF_8.decode(byteBuffer).toString());
+
+    }
+
+```
+
+#### ByteBuffer
+
+**创建ByteBuffer缓冲区：**
+* ByteBuffer.allocate(int capacity)
+* ByteBuffer.allocateDirect(int capacity)
+* ByteBuffer.wrap(byte[] array,int offset, int length)
+
+**ByteBuffer常用方法：**
+* get()
+* get(int index)
+* put(byte b)
+* put(byte[] src)
+* limit(int newLimit)
+* mark()
+* reset()
+* clear()
+* flip()
+* compact()
+
+
+#### 字符串与ByteBuffer的相互转换
+
+> 字符串转换成ByteBuffer
+
+```java
+ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode("hello world\nabc\n\baaa");
+```
+
+> ByteBuffer转换成String
+
+```java
+String str = StandardCharsets.UTF_8.decode(byteBuffer).toString();
+```
+
+> 整个Demo
+
+```java
+ @Test
+    public void test5(){
+        //字符串转换成ByteBuffer
+        ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode("hello world\nabc\n\baaa");
+        //通过StandardCharsets的encode方法获得ByteBuffer，此时获得的ByteBuffer为读模式，无需通过flip切换模式
+//        byteBuffer.flip(); //这句话不能加，encode转换成ByteBuffer默认是读模式
+        while (byteBuffer.hasRemaining()){
+
+            System.out.printf("%c",(char)byteBuffer.get());
+        }
+
+        byteBuffer.flip();
+        //ByteBuffer转换成String
+        String str = StandardCharsets.UTF_8.decode(byteBuffer).toString();
+        System.out.println("\n--------------");
+        System.out.println(str);
+    }
+```
+
+#### 解决粘包和拆包问题
+
+```java
+@Test
+    public void test6(){
+
+        String msg = "hello,world\nI'm abc\nHo";
+
+        ByteBuffer byteBuffer = ByteBuffer.allocate(32);
+
+        byteBuffer.put(msg.getBytes());
+
+        byteBuffer=splitGetBuffer(byteBuffer);
+
+        byteBuffer.put("w are you?\n".getBytes()); //多段发送数据
+
+        byteBuffer=splitGetBuffer(byteBuffer);
+
+        byteBuffer.put("aa  bccdd?\n".getBytes()); //多段发送数据
+
+        byteBuffer=splitGetBuffer(byteBuffer);
+
+    }
+
+    private ByteBuffer splitGetBuffer(ByteBuffer byteBuffer) {
+
+        byteBuffer.flip();
+        StringBuilder stringBuilder = new StringBuilder();
+        int index=-1;
+        for (int i = 0; i < byteBuffer.limit(); i++) {
+
+            if(byteBuffer.get(i)!='\n'){ //get(i)不会让position+1
+
+                stringBuilder.append((char) byteBuffer.get(i));
+
+
+            }else{
+                index=i; //记录最后一个分隔符下标
+                String data = stringBuilder.toString();
+                ByteBuffer dataBuf = ByteBuffer.allocate(data.length());
+                dataBuf.put(data.getBytes());
+                dataBuf.flip();
+                debugAll(dataBuf);
+                dataBuf.clear();
+                stringBuilder=new StringBuilder();
+            }
+        }
+
+        ++index;
+        ByteBuffer temp = ByteBuffer.allocate(byteBuffer.capacity());
+        for (;index<byteBuffer.limit();++index){
+
+            temp.put(byteBuffer.get(index));
+        }
+
+        return temp;
+    }
+```
+
+### 文件编程
+
+
+
+
+
+
+
+
+### 网络编程
+
+
+
+
+
+
+
+
+
+
+
+
+
+
