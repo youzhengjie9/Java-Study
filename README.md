@@ -13859,12 +13859,158 @@ while(buffer.hasRemaining()) {
   * 有可读事件才去读取
   * 有可写事件才去写入
 
-##### Accept事件
+##### 4种事件类型
+
+进入**SelectionKey**这个类可以看到：
+```java
+public static final int OP_READ = 1 << 0; //read事件
+public static final int OP_WRITE = 1 << 2; //write事件
+public static final int OP_CONNECT = 1 << 3; //connect事件
+public static final int OP_ACCEPT = 1 << 4; //accept事件
+```
 
 
+##### 核心方法select
+
+* select()
+**select方法会一直阻塞直到绑定事件发生**
 
 
+##### accept事件
 
+**服务器端：**
+```java
+    Selector selector = Selector.open(); // 创建选择器
+    ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+
+    serverSocketChannel.bind(new InetSocketAddress(8081));
+
+    serverSocketChannel.configureBlocking(false); // 通道必须是非阻塞的
+
+    serverSocketChannel.register(
+        selector, SelectionKey.OP_ACCEPT); // 把channel注册到selector，并选择accept事件
+
+    for (; ; ) {
+
+      selector.select(); // 选择事件，此时会阻塞，当事件发生时会自动解除阻塞
+
+      System.out.println("begin");
+
+      // 遍历事件发生的集合，获取对应事件
+      selector
+          .selectedKeys()
+          .forEach(
+              selectionKey -> {
+                if (selectionKey.isAcceptable()) {
+                  try {
+                    SocketChannel socketChannel = serverSocketChannel.accept();
+                    System.out.println("已连接");
+                    // 处理完之后记得在发生事件的集合中移除该事件
+                    selector.selectedKeys().remove(selectionKey);
+
+                  } catch (IOException e) {
+                    e.printStackTrace();
+                  }
+                }
+              });
+    }
+```
+
+##### read事件
+
+**原生NIO是真tmd难用，恶心**
+**当accept事件处理之后立刻设置read事件,但不处理read事件，因为用户可能只是连接，但是没有写数据，所以要基于事件触发**
+**别忘了accept事件处理之后要设置为非阻塞模式configureBlocking(false)**
+
+```java
+    Selector selector = Selector.open(); // 创建选择器
+    ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+
+    serverSocketChannel.bind(new InetSocketAddress(8081));
+
+    serverSocketChannel.configureBlocking(false); // 通道必须是非阻塞的
+
+    serverSocketChannel.register(
+        selector, SelectionKey.OP_ACCEPT); // 把channel注册到selector，并选择accept事件
+
+    try {
+      while (true) {
+
+        int count = selector.select(); // 选择事件，此时会阻塞，当事件发生时会自动解除阻塞
+
+        Set<SelectionKey> selectionKeys = selector.selectedKeys();
+        Iterator<SelectionKey> iterator = selectionKeys.iterator();
+
+        while (iterator.hasNext()){
+          SelectionKey selectionKey = iterator.next();
+          if (selectionKey.isAcceptable()) { // 处理accept事件
+            try {
+              ServerSocketChannel serverSocket = (ServerSocketChannel) selectionKey.channel();
+              System.out.println("已连接");
+
+              SocketChannel socketChannel = serverSocket.accept();
+              socketChannel.configureBlocking(false);
+              socketChannel.register(selector, SelectionKey.OP_READ); // 读事件
+              iterator.remove();
+
+            } catch (IOException e) {
+
+            }
+          } else if (selectionKey.isReadable()) { // 处理read事件
+            // 获取socketChannel,实际上这个channel就是上面注册进selector的对象
+            SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
+            ByteBuffer byteBuffer = ByteBuffer.allocate(100);
+            try{
+              int read = socketChannel.read(byteBuffer);
+              System.out.println("read:"+read);
+            }catch (Exception e){
+//              e.printStackTrace();
+             continue;  //一定要这样写。。。。。。。防止多次read报错
+            }
+            byteBuffer.flip();
+            debugAll(byteBuffer);
+            byteBuffer.clear();
+            iterator.remove();
+
+          }
+
+        }
+
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+```
+ 
+##### selector注意点
+* 事件发生后，要么处理，要么取消（cancel），不能什么都不做，否则下次该事件仍会触发
+* 事件处理之后一定要把selector.**selectedKeys**这个集合中当前处理完成的事件**remove**掉
+
+
+#### 零拷贝
+零拷贝指的是数据**无需拷贝到JVM内存**中，同时具有以下三个优点:
+* 更少的用户态与内核态的切换
+* 不利用cpu计算，减少cpu缓存伪共享
+* 零拷贝适合小文件传输
+
+
+#### NIO优化
+
+使用DirectByteBuffer
+* ByteBuffer.allocate(10)底层对应 HeapByteBuffer，使用的还是Java堆内存
+* ByteBuffer.allocateDirect(10)底层对应DirectByteBuffer，使用的是操作系统内存，不过需要手动释放内存
+
+**优点：**
+* 减少了一次数据拷贝，用户态与内核态的切换次数没有减少
+* 这块内存不受 JVM 垃圾回收的影响，因此内存地址固定，有助于 IO 读写
+
+
+##### linux2.4优化
+
+* Java 调用 transferTo 方法后，要从 Java 程序的用户态切换至内核态，使用 DMA将数据读入内核缓冲区，不会使用 CPU
+* 只会将一些 offset 和 length 信息拷入 socket 缓冲区，几乎无消耗
+* 使用 DMA 将 内核缓冲区的数据写入网卡，不会使用 CPU
+* 整个过程仅只发生了1次用户态与内核态的切换，数据拷贝了 2 次
 
 
 ### Netty
