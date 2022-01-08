@@ -13588,14 +13588,278 @@ String str = StandardCharsets.UTF_8.decode(byteBuffer).toString();
 ### 文件编程
 
 
+#### FileChannel
+
+**因为FileChannel只能工作在阻塞环境下，而Selector是非阻塞的，所以FileChannel无法注册到Selector里面去。**
+
+##### 获取FileChannel
+
+FileChannel不能直接打开,一定要用FileInputStream或者FileOutputStream或者RandomAccessFile来获取FileChannel对象，
+使用**getChannel**方法即可。
+
+**注意以下几点：**
+* 通过FileInputStream获取的channel只能读
+* 通过FileOutputStream获取的channel只能写
+* 通过 RandomAccessFile 是否能读写根据构造 RandomAccessFile 时的读写模式决定
+
+##### FileChannel读取
+
+通过 FileInputStream 获取channel，通过read方法将数据写入到ByteBuffer中，read方法的返回值表示读到了多少字节，若读到了文件末尾则返回-1
+
+```java
+int read = channel.read(buffer);
+```
+
+##### FileChannel写入
+
+因为channel也是有大小的，所以 write方法并不能保证一次将 buffer中的内容全部写入channel。必须需要按照以下规则进行写入
+
+```java
+// 通过hasRemaining()方法查看缓冲区中是否还有数据未写入到通道中
+while(buffer.hasRemaining()) {
+	channel.write(buffer);
+}
+```
+
+##### 强制写入
+
+操作系统出于性能的考虑，会将数据缓存，不是立刻写入磁盘，而是等到缓存满了以后将所有数据一次性的写入磁盘。可以调用force(true)方法将文件内容和元数据（文件的权限等信息）立刻写入磁盘
 
 
 
+#### 两个Channel传输数据
+
+##### transferTo方法的使用
+
+```java
+
+        //方法一：
+        FileInputStream fileInputStream = new FileInputStream("data.txt"); //读的通道
+        FileChannel from = fileInputStream.getChannel();
+
+        FileOutputStream fileInputStream1 = new FileOutputStream("to.txt"); //写的通道
+        FileChannel to = fileInputStream1.getChannel();
 
 
+        long l = from.transferTo(0, from.size(), to);
+        
+
+        //方法二：
+        RandomAccessFile r1 = new RandomAccessFile("data.txt", "rw"); //都开启rw权限
+        FileChannel from1 = r1.getChannel();
+
+
+        RandomAccessFile r2 = new RandomAccessFile("to.txt", "rw");
+        FileChannel to2 = r2.getChannel();
+
+        from1.transferTo(0,r1.length(),to2);
+
+```
+
+##### transferTo方法介绍
+
+使用transferTo方法可以快速、高效地将一个channel中的数据传输到另一个channel中，但**一次只能传输2G**的内容，
+**transferTo方法的底层使用了零拷贝技术**，
+
+
+
+#### Path与Paths
+
+* Path用来表示文件路径
+* Paths是工具类，用来获取Path实例
+
+```java
+ Path path = Paths.get("data.txt");
+
+ Path path1 = Paths.get("D:\\java code\\netty-study\\data.txt");
+```
+
+#### Files
+
+##### 判断文件是否存在
+```java
+    Path path = Paths.get("data.txt");
+    boolean exists = Files.exists(path);
+```
+
+##### 创建一级目录
+
+* createDirectory(path)
+
+**如果文件夹已存在**，则会报错。FileAlreadyExistsException,
+此方法只能创建一级目录，**如果用此方法创建多级目录则会报错**NoSuchFileException。
+
+```java
+    Path path = Paths.get("D:\\img");
+    Path directory = Files.createDirectory(path);
+```
+
+##### 创建多级目录
+
+* createDirectories(path)
+
+```java
+    Path path = Paths.get("D:\\img\\a\\b");
+    Path directories = Files.createDirectories(path);
+```
+
+
+##### 拷贝文件
+
+```java
+    //这种方式如果目标文件‘to’存在则会报错FileAlreadyExistsException
+    Path from = Paths.get("data.txt");
+    Path to = Paths.get("D:\\img\\target.txt"); //文件名也要写
+    Files.copy(from,to);
+    //只需要加StandardCopyOption.REPLACE_EXISTING就不会报错，因为它会直接替换掉目标文件
+    Path from = Paths.get("data.txt");
+    Path path = Paths.get("D:\\img\\target.txt"); //文件名也要写
+    Files.copy(from,path, StandardCopyOption.REPLACE_EXISTING);
+```
+
+##### 移动文件
+
+```java
+    Path source = Paths.get("data.txt");
+    Path target = Paths.get("D:\\img\\target.txt");
+    Files.move(source, target, StandardCopyOption.ATOMIC_MOVE);
+```
+
+* StandardCopyOption.ATOMIC_MOVE保证文件移动的原子性
+
+
+##### 删除文件
+
+```java
+    Path target = Paths.get("D:\\img\\target.txt");
+    Files.delete(target); //删除文件
+```
+
+
+##### 遍历文件夹
+
+* walkFileTree(Path, FileVisitor)方法
+  * Path：文件起始路径
+  * FileVisitor：文件访问器，使用访问者模式，这个接口有如下方法
+    * preVisitDirectory：访问目录前的操作
+    * visitFile：访问文件的操作
+    * visitFileFailed：访问文件失败时的操作
+    * postVisitDirectory：访问目录后的操作
+
+```java
+    Path target = Paths.get("D:\\cTest");
+
+    Files.walkFileTree(target,new SimpleFileVisitor<Path>(){
+
+      @Override
+      public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+        System.out.println("1:"+dir);
+        return super.preVisitDirectory(dir, attrs);
+      }
+
+      @Override
+      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+        System.out.println("2:"+file);
+        return super.visitFile(file, attrs);
+      }
+    });
+```
 
 ### 网络编程
 
+#### NIO通信(阻塞模式)
+
+这里有一段简易的通信代码:
+
+**服务器端：**
+
+```java
+      ServerSocketChannel serverSocketChannel = ServerSocketChannel.open(); //打开serverSocketChannel
+
+      serverSocketChannel.bind(new InetSocketAddress(8080));
+
+      while (true){
+
+      System.out.println("waiting.....");
+          SocketChannel socketChannel = serverSocketChannel.accept(); //阻塞
+      System.out.println("connect success");
+          ByteBuffer byteBuffer = ByteBuffer.allocate(100);
+          socketChannel.read(byteBuffer); //阻塞，等待消息发送过来即可封装到缓存里去
+          byteBuffer.flip();
+      System.out.println(StandardCharsets.UTF_8.decode(byteBuffer).toString());
+      }
+```
+
+**客户端：**
+
+```java
+      SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress( 8080));
+      ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode("this is nio");
+      socketChannel.write(byteBuffer);
+```
+
+**实际上，这个和以前的IO+Socket进行通信是一样的，都是属于阻塞状态。**
+
+
+#### NIO通信(非阻塞模式)
+
+* configureBlocking(false)
+
+可以通过ServerSocketChannel的configureBlocking(false)方法将获得连接设置为非阻塞的。此时若没有连接，accept会返回null,
+可以通过SocketChannel的configureBlocking(false)方法将从通道中读取数据设置为非阻塞的。若此时通道中没有数据可读，read会返回-1
+
+**服务器端：**
+```java
+      ByteBuffer byteBuffer = ByteBuffer.allocate(100);
+      ServerSocketChannel serverSocketChannel = ServerSocketChannel.open(); //打开通道
+
+      serverSocketChannel.bind(new InetSocketAddress(8082));
+      //由于accept方法是阻塞的，我们只需要一行代码就能让它变成非阻塞的
+      //开启非阻塞的之后accept方法如果没有连接到客户端就会从阻塞变成返回'null'
+      serverSocketChannel.configureBlocking(false);//开启非阻塞
+      while (true){
+//          System.out.println("waiting...");
+          SocketChannel socketChannel = serverSocketChannel.accept(); //阻塞方法
+
+//          System.out.println(socketChannel);
+
+              if(socketChannel!=null){
+                  System.out.println("等待读取");
+                  socketChannel.configureBlocking(false); //设置SocketChannel为非阻塞
+                  int read = socketChannel.read(byteBuffer);//阻塞方法
+                  System.out.println("读取到"+read+"字节");
+                  if(read>0){
+
+                      byteBuffer.flip();
+                      System.out.println(StandardCharsets.UTF_8.decode(byteBuffer).toString());
+                  }
+              }
+      }
+```
+
+**客户端：**
+
+```java
+      SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress(8082));
+      ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode("hello");
+      socketChannel.write(byteBuffer);
+```
+
+#### Selector
+
+**Selector是基于事件驱动的**
+
+##### 多路复用
+单线程可以配合Selector完成对多个Channel读写事件的监控，这称之为多路复用。
+
+**注意：**
+* 多路复用只能用于网络IO上，文件IO由于只能处于阻塞环境下才能进行，所以无法多路复用
+* 如果不用Selector的非阻塞模式，线程大部分时间都在做无用功，而Selector能够保证以下几点
+  * 有可连接事件时才去连接
+  * 有可读事件才去读取
+  * 有可写事件才去写入
+
+##### Accept事件
 
 
 
@@ -13603,9 +13867,14 @@ String str = StandardCharsets.UTF_8.decode(byteBuffer).toString();
 
 
 
+### Netty
 
+**Netty提供异步的、事件驱动的网络应用程序框架和工具，用以快速开发高性能、高可靠性的网络服务器和客户端程序**
 
+#### Netty应用
 
-
-
+**由netty开发的开源框架：**
+* dubbo
+* Zookeeper
+* RocketMQ
 
