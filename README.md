@@ -14017,10 +14017,134 @@ public static final int OP_ACCEPT = 1 << 4; //accept事件
 
 **Netty提供异步的、事件驱动的网络应用程序框架和工具，用以快速开发高性能、高可靠性的网络服务器和客户端程序**
 
-#### Netty应用
+#### Netty著名项目
 
-**由netty开发的开源框架：**
+**由Netty开发的开源框架：**
 * dubbo
 * Zookeeper
 * RocketMQ
+
+#### Netty的优势
+
+* 不需要自己构建协议，Netty自带了多种协议，例如HTTP协议
+* 解决了TCP传输问题，如粘包、半包
+* 解决了一个epoll空轮询的JDK bug。（作者遇到过）,即selector的select方法默认是阻塞的，但是并没有阻塞会一直空轮询。
+* Netty对JDK的NIO API进行增强,如下：
+  * ThreadLocal==>FastThreadLocal
+  * ByteBuffer==>ByteBuf(重要)，支持动态扩容，不像原厂的JDK的ByteBuffer超过缓存就报错
+
+
+#### Netty Maven
+
+```xml
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <version>4.1.65.Final</version>
+        </dependency>
+```
+
+**依赖说明：暂时不推荐使用Netty5，使用Netty4即可**
+
+
+#### 第一个Netty应用
+
+**服务器端：**
+
+```java
+  private static final Logger log = LoggerFactory.getLogger(NettyServer.class);
+
+  public static void main(String[] args) {
+
+    // Netty的服务器端启动器，装配Netty组件
+    new ServerBootstrap()
+        // NioEventLoopGroup底层就是线程池+selector
+        .group(new NioEventLoopGroup())
+        // 通道
+        .channel(NioServerSocketChannel.class)
+        //“每一个”SocketChannel客户端连接上服务器端“都会”执行这个初始化器ChannelInitializer
+        //但是每一个SocketChannel只能够让这个初始化器执行一次
+        .childHandler(
+            new ChannelInitializer<NioSocketChannel>() {
+              @Override
+              protected void initChannel(NioSocketChannel nioSocketChannel) throws Exception {
+                  log.info("initChannel start......");
+                  //往处理器流水线pipeline添加处理器
+                  //因为'客户端'发送数据会进行'字符串的编码'再发送到服务器端，所以这里要'创建一个字符串解码器'StringDecoder
+                  nioSocketChannel.pipeline().addLast(new StringDecoder());
+                  //添加接收数据需要的处理器适配器
+                  nioSocketChannel.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+                      //重写通道的‘’读‘’方法,msg就是接收到的数据
+                      @Override
+                      public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                          log.warn(msg.toString()); //打印数据
+                          super.channelRead(ctx, msg);
+                      }
+                  });
+                  log.info("initChannel end......");
+              }
+            })
+        .bind(8082);
+  }
+```
+
+**客户端：**
+
+```java
+  private static final Logger log = LoggerFactory.getLogger(NettyClient.class);
+
+  public static void main(String[] args) throws InterruptedException {
+
+      //创建Netty客户端的启动器，装配Netty组件
+    new Bootstrap()
+        .group(new NioEventLoopGroup())
+        .channel(NioSocketChannel.class)
+        //一旦执行这个应用立刻初始化，这个和childHandler有所不同
+        //childHandler是需要socket连接上在初始化，这个不需要。。。。。
+        .handler(
+            new ChannelInitializer<Channel>() {
+              @Override
+              protected void initChannel(Channel channel) throws Exception {
+                  log.info("initChannel start......");
+                  //由于发送的数据需要进行编码再发送，所以需要一个字符串编码器
+                  //往通道流水线添加一个字符串编码器
+                  channel.pipeline().addLast(new StringEncoder());
+                  log.info("initChannel end......");
+              }
+            })
+        // connect方法是“”异步“”的
+        .connect("localhost", 8082)
+        //坑点：由于connect方法是异步的，所以要同步。。。。。
+        //由于connect方法是异步的，如果没有进行同步，可能会造成发送数据在连接服务器之前。
+        //一般来说connect连接服务器大概需要>1s，而writeAndFlush是立刻发送数据，所以这里一定要使用sync方法进行同步
+        .sync()
+        // 获取通道。然后发送数据
+        .channel()
+        .writeAndFlush("hello你好");
+  }
+```
+
+#### Netty组件
+
+
+##### EventLoop
+
+
+##### Channel
+
+
+##### Future与Promise
+
+
+##### Handler与Pipeline
+
+
+
+##### ByteBuf
+
+
+
+
+
+
 
