@@ -14222,9 +14222,27 @@ EventLoop底层维护了一个线程和selector，而count可以指定EventLoopG
 ```
 
 
-
-
 ##### Channel
+
+**Channel常用方法：**
+* close()
+  * 可以用来关闭Channel
+* closeFuture()
+  * 用来处理 Channel 的关闭
+* pipeline()
+  * 添加处理器
+* write()
+  * 写入数据，只有当缓冲满了或者调用了flush()方法后，才会将数据通过 Channel 发送出去
+* writeAndFlush()
+  * 立即发送数据，相当于同时调用write和flush方法，好处是不用等缓存满了才能发出数据的问题
+
+> ChannelFuture
+
+
+
+
+
+
 
 
 ##### Future与Promise
