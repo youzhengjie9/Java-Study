@@ -14013,7 +14013,7 @@ public static final int OP_ACCEPT = 1 << 4; //accept事件
 * 整个过程仅只发生了1次用户态与内核态的切换，数据拷贝了 2 次
 
 
-### Netty
+### Netty入门
 
 **Netty提供异步的、事件驱动的网络应用程序框架和工具，用以快速开发高性能、高可靠性的网络服务器和客户端程序**
 
@@ -14126,8 +14126,102 @@ public static final int OP_ACCEPT = 1 << 4; //accept事件
 
 #### Netty组件
 
+> 查看CPU最大核心数
+
+```java
+int hx = NettyRuntime.availableProcessors(); //cpu核心数
+```
 
 ##### EventLoop
+
+**事件循环对象**EventLoop
+
+EventLoop本质是一个单线程执行器（同时维护了一个 Selector），里面有run方法处理一个或多个Channel上源源不断的io事件
+
+**事件循环组**EventLoopGroup
+
+EventLoopGroup是一组EventLoop，而每一个EventLoop都维护着一个selector，Channel 一般会调用EventLoopGroup的register方法来绑定其中一个EventLoop。
+
+
+```java
+      int count=3;
+      EventLoopGroup ev=new NioEventLoopGroup(count);
+      System.out.println(ev.next().hashCode());//1
+      System.out.println(ev.next().hashCode());//2
+      System.out.println(ev.next().hashCode());//3
+      System.out.println(ev.next().hashCode());//4
+```
+
+通过上面的代码可以看出1和4是同一个对象，因为他们的hashCode相同。得出EventLoopGroup是一个**线程池**，里面装载着>1个的EventLoop，
+EventLoop底层维护了一个线程和selector，而count可以指定EventLoopGroup的线程池大小。
+
+
+> EventLoop普通任务与定时任务
+
+```java
+      EventLoopGroup ev=new NioEventLoopGroup(3);
+      //普通任务
+      ev.next().submit(()->{
+
+          System.out.println("111");
+
+      });
+
+      System.out.println("222");
+
+      //定时任务
+      ev.next().scheduleAtFixedRate(()->{
+
+          System.out.println("333");
+
+      },0,1,TimeUnit.SECONDS);
+
+```
+
+> 关闭EventLoopGroup
+
+```java
+      EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
+      eventLoopGroup.shutdownGracefully(); //优雅的关闭EventLoopGroup
+```
+
+
+> 分工
+
+```java
+      // Netty的服务器端启动器，装配Netty组件
+      new ServerBootstrap()
+               //******NioEventLoopGroup的分工合作，第一个NioEventLoopGroup处理accept事件
+              //第二个NioEventLoopGroup处理读写事件
+              .group(new NioEventLoopGroup(),new NioEventLoopGroup())
+              // 通道
+              .channel(NioServerSocketChannel.class)
+              //“每一个”SocketChannel客户端连接上服务器端“都会”执行这个初始化器ChannelInitializer
+              //但是每一个SocketChannel只能够让这个初始化器执行一次
+              .childHandler(
+                      new ChannelInitializer<NioSocketChannel>() {
+                          @Override
+                          protected void initChannel(NioSocketChannel nioSocketChannel) throws Exception {
+                              log.info("initChannel start......");
+                              //往处理器流水线pipeline添加处理器
+                              //因为'客户端'发送数据会进行'字符串的编码'再发送到服务器端，所以这里要'创建一个字符串解码器'StringDecoder
+                              nioSocketChannel.pipeline().addLast(new StringDecoder());
+                              //添加接收数据需要的处理器适配器
+                              nioSocketChannel.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+                                  //重写通道的‘’读‘’方法,msg就是接收到的数据
+                                  @Override
+                                  public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                                      log.warn(msg.toString()); //打印数据
+                                      super.channelRead(ctx, msg);
+                                  }
+                              });
+                              log.info("initChannel end......");
+                          }
+                      })
+              .bind(8082);
+```
+
+
 
 
 ##### Channel
