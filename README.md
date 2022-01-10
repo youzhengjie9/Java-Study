@@ -14444,13 +14444,227 @@ Promise相当于一个容器，可以用于存放各个线程中的结果，然�
 
 ##### Handler&Pipeline
 
+**服务端：**
+
+```java
+              new ServerBootstrap()
+              .group(new NioEventLoopGroup(),new NioEventLoopGroup(2))
+              .channel(NioServerSocketChannel.class)
+              .childHandler(new ChannelInitializer<SocketChannel>() {
+
+                  //pipeline结构
+                  //head->handle1->handle2->handle3->handle4->handle5->handle6->tail
+                  //且为‘双向链表’，触发Inbound事件则会从head->tail一直走Inbound方法。
+                  //触发Outbound事件则会从tail->head一直走Outbound方法。只有触发了对应事件才会走对应的方法。。。。。。
+                  @Override
+                  protected void initChannel(SocketChannel socketChannel) throws Exception {
+
+                      socketChannel.pipeline().addLast(new StringDecoder());
+
+                      //Inbound处理器
+                      //为处理器取名字
+                      socketChannel.pipeline().addLast("handle1",new ChannelInboundHandlerAdapter(){
+
+                          @Override
+                          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                              log.warn(Thread.currentThread().getName()+"==>"+"handle1");
+                              super.channelRead(ctx, msg); //向下传递
+                          }
+                      });
+
+                      socketChannel.pipeline().addLast("handle2",new ChannelInboundHandlerAdapter(){
+                          @Override
+                          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                              log.warn(msg.toString());
+                              log.warn(Thread.currentThread().getName()+"==>"+"handle2");
+                              super.channelRead(ctx, msg); //向下传递
+                          }
+                      });
+
+                      socketChannel.pipeline().addLast("handle3",new ChannelInboundHandlerAdapter(){
+                          @Override
+                          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+
+                              //***不能用这种方法，client会收不到
+//                              ByteBuffer buffer = StandardCharsets.UTF_8.encode("hello world");
+
+
+                              //***用这种,记住*****一定要指定字符类型UTF-8***
+                              ByteBuf byteBuf = ctx.alloc().buffer().writeBytes("hello".getBytes("utf-8"));
+                              //发送数据，触发OutBound事件
+                              socketChannel.writeAndFlush(byteBuf);
+
+                              log.warn(Thread.currentThread().getName()+"==>"+"handle3");
+                              super.channelRead(ctx, msg); //向下传递
+                          }
+                      });
+
+                      //Outbound处理器
+                      socketChannel.pipeline().addLast("handle4",new ChannelOutboundHandlerAdapter(){
+
+                          @Override
+                          public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+                              log.warn(Thread.currentThread().getName()+"==>"+"handle4");
+                              super.write(ctx, msg, promise);
+                          }
+                      });
+
+                      socketChannel.pipeline().addLast("handle5",new ChannelOutboundHandlerAdapter(){
+
+                          @Override
+                          public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+                              log.warn(Thread.currentThread().getName()+"==>"+"handle5");
+                              super.write(ctx, msg, promise);
+                          }
+                      });
+
+                      socketChannel.pipeline().addLast("handle6",new ChannelOutboundHandlerAdapter(){
+
+                          @Override
+                          public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+                              log.warn(Thread.currentThread().getName()+"==>"+"handle6");
+                              super.write(ctx, msg, promise);
+                          }
+                      });
+                  }
+              }).bind(8080);
+```
+
+**客户端：**
+
+```java
+      NioEventLoopGroup eventLoopGroup = new NioEventLoopGroup();
+      ChannelFuture channelFuture = new Bootstrap()
+              .group(eventLoopGroup)
+              .channel(NioSocketChannel.class)
+              .handler(new ChannelInitializer<Channel>() {
+                  @Override
+                  protected void initChannel(Channel ch) throws Exception {
+
+                      ch.pipeline().addLast(new StringEncoder());
+                      ch.pipeline().addLast(new LoggingHandler());
+
+                      ch.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+
+                          @Override
+                          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                              System.out.println("--------------"+msg.toString());
+                              super.channelRead(ctx, msg);
+                          }
+                      });
+
+                  }
+              }).connect("localhost", 8080);
+
+      channelFuture.addListener(new ChannelFutureListener() {
+          @Override
+          public void operationComplete(ChannelFuture future) throws Exception {
+
+              Channel channel = future.channel();
+              channel.writeAndFlush("client-----");
+//              channel.close();
+//              ChannelFuture closeFuture = channel.closeFuture();
+//              closeFuture.addListener(new ChannelFutureListener() {
+//                  @Override
+//                  public void operationComplete(ChannelFuture future) throws Exception {
+//                      eventLoopGroup.shutdownGracefully();
+//                  }
+//              });
+          }
+      });
+```
+
+通过channel.pipeline().addLast(name, handler)添加handler时，记得给handler取名字。这样可以调用pipeline的addAfter、addBefore等方法更灵活地向pipeline中添加handler.
+
+**handler需要放入通道的pipeline中，才能根据放入顺序来使用handler:**
+* pipeline是结构是一个带有head与tail指针的双向链表，其中的节点为handler处理器
+  * 要通过ctx.fireChannelRead(msg)等方法，将当前handler的处理结果传递给下一个handler
+* 当有入站（Inbound）操作时，会从head开始向tail方向调用handler，直到handler不是处理Inbound操作为止
+* 当有出站（Outbound）操作时，会从tail开始向head方向调用handler，直到handler不是处理Outbound操作为止
+
+**结构图：**
+
+![p](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/p.png)
 
 
 ##### ByteBuf
 
+> 创建ByteBuf
 
+```java
+      //创建ByteBuf
+      ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer(10);
 
+      log(byteBuf);
 
+      StringBuffer stringBuffer = new StringBuffer();
 
+    for (int i = 0; i < 50; i++) {
+      stringBuffer.append('1');
+    }
+    byteBuf.writeBytes(stringBuffer.toString().getBytes("utf-8"));
+    log(byteBuf);
+```
 
+**运行结果：**
 
+```java
+read index:0 write index:0 capacity:10
+
+read index:0 write index:50 capacity:64
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 |1111111111111111|
+|00000010| 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 |1111111111111111|
+|00000020| 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 31 |1111111111111111|
+|00000030| 31 31                                           |11              |
++--------+-------------------------------------------------+----------------+
+
+Process finished with exit code 0
+```
+
+**根据打印的capacity可知ByteBuf是会自动扩容的，而NIO的ByteBuffer是不能超出容量的。**
+
+```java
+public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
+    static final int DEFAULT_INITIAL_CAPACITY = 256; //默认初始化容量
+    static final int DEFAULT_MAX_CAPACITY = Integer.MAX_VALUE; //最大容量
+    static final int DEFAULT_MAX_COMPONENTS = 16;
+```
+
+**ByteBuf通过ByteBufAllocator选择allocator并调用对应的buffer()方法来创建的，默认使用直接内存作为ByteBuf，容量为256个字节，可以指定初始容量的大小**
+
+**如果在handler中创建ByteBuf，建议使用ChannelHandlerContext ctx.alloc().buffer()来创建**
+
+> 3种创建池化的ByteBuf方式
+
+```java
+      ByteBuf byteBuf1 = ByteBufAllocator.DEFAULT.buffer(10); //默认创建的是‘’直接内存‘’的ByteBuf
+
+      ByteBuf byteBuf2 = ByteBufAllocator.DEFAULT.heapBuffer(10);//指定创建‘’堆内存‘’的ByteBuf
+
+      ByteBuf byteBuf3 = ByteBufAllocator.DEFAULT.directBuffer(10);//指定创建‘’直接内存‘’的ByteBuf
+```
+
+> 查看当前ByteBuf对象类型
+
+```java
+      ByteBuf byteBuf1 = ByteBufAllocator.DEFAULT.buffer(10); //默认创建的是‘’直接内存‘’的ByteBuf
+
+      ByteBuf byteBuf2 = ByteBufAllocator.DEFAULT.heapBuffer(10);//指定创建‘’堆内存‘’的ByteBuf
+
+      ByteBuf byteBuf3 = ByteBufAllocator.DEFAULT.directBuffer(10);//指定创建‘’直接内存‘’的ByteBuf
+
+      System.out.println(byteBuf1.getClass());
+      System.out.println(byteBuf2.getClass());
+      System.out.println(byteBuf3.getClass());
+```
+
+**输出结果：**
+
+```java
+class io.netty.buffer.PooledUnsafeDirectByteBuf
+class io.netty.buffer.PooledUnsafeHeapByteBuf
+class io.netty.buffer.PooledUnsafeDirectByteBuf
+```
