@@ -14401,6 +14401,45 @@ JDK Futhure和Netty Future、Netty Promise区别：
 
 > Netty Future
 
+```java
+      EventLoopGroup eventLoopGroup = new NioEventLoopGroup(2);
+      Future<String> future = eventLoopGroup.next().submit(new Callable<String>() {
+          @Override
+          public String call() throws Exception {
+              Thread.sleep(1000);
+              return "Netty Future";
+          }
+      });
+
+//      String s1 = future.get(); //阻塞方法，这个方法和jdk的future一样
+//      System.out.println(s1);
+
+      String s2 = future.getNow(); //非阻塞方法，如果future没有立刻返回值则不会等待，直接返回null
+      System.out.println(s2);
+```
+
+> Netty Promise
+
+Promise相当于一个容器，可以用于存放各个线程中的结果，然后让其他线程去获取该结果
+
+```java
+      NioEventLoopGroup eventLoopGroup = new NioEventLoopGroup();
+      EventLoop executors = eventLoopGroup.next();
+      DefaultPromise<Integer> promise = new DefaultPromise<>(executors);
+      new Thread(()->{
+
+          try {
+              Thread.sleep(1000);
+          } catch (InterruptedException e) {
+              e.printStackTrace();
+          }
+          promise.setSuccess(100);
+
+      }).start();
+      Integer res = promise.get();
+      System.out.println(res);
+```
+
 
 
 ##### Handler&Pipeline
