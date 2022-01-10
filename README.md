@@ -14369,10 +14369,37 @@ EventLoop底层维护了一个线程和selector，而count可以指定EventLoopG
 
 ##### Future&Promise
 
+**Future都是用线程池去返回得到的，所以JDK Future需要依赖线程池，Netty Future需要依赖于EventLoopGroup**
 
 
+JDK Futhure和Netty Future、Netty Promise区别：
+
+**Netty的Future继承与JDK的Future，Netty Promise又对Netty Future进行扩展**。
+
+* JDK Future只能同步等待任务结束（或成功、或失败）才能得到结果,例如JDK Future的get是阻塞的获取结果
+* Netty Future既阻塞的获取结果，也可以非阻塞的获取结果，阻塞就是get,非阻塞就是getNow。
+* Netty Promise有Netty Future所有的功能且增加了几个方法，setSuccess、setFailure，而且脱离了任务独立存在，只作为两个线程间传递结果的容器。
 
 
+> JDK Future
+
+```java
+      ExecutorService executorService = Executors.newFixedThreadPool(2); //创建一个固定大小的线程池
+      //Callable有返回值。
+      Future<String> future = executorService.submit(new Callable<String>() {
+          @Override
+          public String call() throws Exception {
+              Thread.sleep(1000);
+              return "hello";
+          }
+      });
+
+      String res = future.get(); //get方法会阻塞，直到线程池的submit执行完毕，返回了future对象才会解除阻塞
+      System.out.println(res);
+      executorService.shutdown(); //关闭线程池
+```
+
+> Netty Future
 
 
 
