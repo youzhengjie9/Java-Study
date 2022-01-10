@@ -14238,6 +14238,136 @@ EventLoop底层维护了一个线程和selector，而count可以指定EventLoopG
 
 > ChannelFuture
 
+**获取ChannelFuture**
+
+```java
+      //创建Netty客户端的启动器，装配Netty组件
+      ChannelFuture channelFuture = new Bootstrap()
+              .group(new NioEventLoopGroup())
+              .channel(NioSocketChannel.class)
+              //一旦执行这个应用立刻初始化，这个和childHandler有所不同
+              //childHandler是需要socket连接上在初始化，这个不需要。。。。。
+              .handler(
+                      new ChannelInitializer<Channel>() {
+                          @Override
+                          protected void initChannel(Channel channel) throws Exception {
+                              //由于发送的数据需要进行编码再发送，所以需要一个字符串编码器
+                              //往通道流水线添加一个字符串编码器
+                              channel.pipeline().addLast(new StringEncoder());
+                          }
+                      })
+              // connect方法是“”异步“”的
+              .connect("localhost", 8082);
+```
+
+**发送数据的两种方式**
+
+* sync同步channelFuture再发送数据
+* channelFuture添加监听器
+
+**这两种方法本质上都是为了让channelFuture成功创建也就是connect方法完成调用之后才发送数据**
+
+```java
+      //创建Netty客户端的启动器，装配Netty组件
+      ChannelFuture channelFuture = new Bootstrap()
+              .group(new NioEventLoopGroup())
+              .channel(NioSocketChannel.class)
+              //一旦执行这个应用立刻初始化，这个和childHandler有所不同
+              //childHandler是需要socket连接上在初始化，这个不需要。。。。。
+              .handler(
+                      new ChannelInitializer<Channel>() {
+                          @Override
+                          protected void initChannel(Channel channel) throws Exception {
+                              //由于发送的数据需要进行编码再发送，所以需要一个字符串编码器
+                              //往通道流水线添加一个字符串编码器
+                              channel.pipeline().addLast(new StringEncoder());
+                          }
+                      })
+              // connect方法是“”异步“”的
+              .connect("localhost", 8082);
+
+      //"方法一"：
+      //由于connect方法是异步的，如果没有进行同步，可能会造成发送数据在连接服务器之前。
+      //一般来说connect连接服务器大概需要>1s，而writeAndFlush是立刻发送数据，所以这里一定要使用sync方法进行同步
+
+//      channelFuture.sync();
+//      Channel channel = channelFuture.channel();
+//      channel.writeAndFlush("你好");
+
+      //方法二：使用监听器，监听channelFuture是否完成连接。因为channelFuture只有connect完成之后才会创建
+      //使用这种监听器方法就不需要sync进行同步了
+      channelFuture.addListener(new ChannelFutureListener() {
+          //当connect成功连接之后就会进入这个方法
+          @Override
+          public void operationComplete(ChannelFuture future) throws Exception {
+
+              Channel channel = future.channel();
+              channel.writeAndFlush("operationComplete");
+          }
+      });
+```
+
+> 关闭通道channel
+
+```java
+      EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
+      //创建Netty客户端的启动器，装配Netty组件
+      ChannelFuture channelFuture = new Bootstrap()
+              .group(eventLoopGroup)
+              .channel(NioSocketChannel.class)
+              //一旦执行这个应用立刻初始化，这个和childHandler有所不同
+              //childHandler是需要socket连接上在初始化，这个不需要。。。。。
+              .handler(
+                      new ChannelInitializer<Channel>() {
+                          @Override
+                          protected void initChannel(Channel channel) throws Exception {
+                             //日志
+                              channel.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
+                            //由于发送的数据需要进行编码再发送，所以需要一个字符串编码器
+                              //往通道流水线添加一个字符串编码器
+                              channel.pipeline().addLast(new StringEncoder());
+                          }
+                      })
+              // connect方法是“”异步“”的
+              .connect("localhost", 8082);
+
+      //"方法一"：
+      //由于connect方法是异步的，如果没有进行同步，可能会造成发送数据在连接服务器之前。
+      //一般来说connect连接服务器大概需要>1s，而writeAndFlush是立刻发送数据，所以这里一定要使用sync方法进行同步
+
+//      channelFuture.sync();
+//      Channel channel = channelFuture.channel();
+//      channel.writeAndFlush("你好");
+
+      //方法二：使用监听器，监听channelFuture是否完成连接。因为channelFuture只有connect完成之后才会创建
+      //使用这种监听器方法就不需要sync进行同步了
+      channelFuture.addListener(new ChannelFutureListener() {
+          //当connect成功连接之后就会进入这个方法
+          @Override
+          public void operationComplete(ChannelFuture future) throws Exception {
+
+              Channel channel = future.channel();
+              channel.writeAndFlush("operationComplete");
+              //只有close之后才会调用下面的关闭监听器
+              channel.close(); //关闭channel,这个关闭方法也是**异步**的，所以也需要进行监听
+
+              ChannelFuture closeFuture = channel.closeFuture();
+
+              //关闭通道监听器
+              closeFuture.addListener(new ChannelFutureListener() {
+                  @Override
+                  public void operationComplete(ChannelFuture future) throws Exception {
+                      log.info("已经关闭channel");
+                      //关闭group
+                      eventLoopGroup.shutdownGracefully();
+                  }
+              });
+
+          }
+      });
+```
+
+##### Future&Promise
 
 
 
@@ -14245,10 +14375,8 @@ EventLoop底层维护了一个线程和selector，而count可以指定EventLoopG
 
 
 
-##### Future与Promise
 
-
-##### Handler与Pipeline
+##### Handler&Pipeline
 
 
 
