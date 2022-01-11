@@ -14938,7 +14938,7 @@ ByteBuf以**get开头**的方法，这些方法**不会改变读指针的位置*
         return (short) (buffer.get(index) & 0xFF);
     }
 
-    private static void log(ByteBuf buffer) {
+    public static void log(ByteBuf buffer) {
         int length = buffer.readableBytes();
         int rows = length / 16 + (length % 15 == 0 ? 0 : 1) + 4;
         StringBuilder buf = new StringBuilder(rows * 80 * 2)
@@ -14951,6 +14951,201 @@ ByteBuf以**get开头**的方法，这些方法**不会改变读指针的位置*
     }
 }
 ```
+
+> ByteBuf的释放
+
+由于ByteBuf中有堆外内存（直接内存）的实现，**堆外内存**最好是**手动来释放**，而不是等GC来进行垃圾回收。
+* UnpooledHeapByteBuf使用的是JVM内存，只需等GC回收内存即可。
+* UnpooledDirectByteBuf使用的是直接内存，需要特殊的方法来回收内存
+* PooledByteBuf和它的子类使用了池化机制，需要更复杂的规则来回收内存
+
+
+Netty这里采用了**引用计数法**来控制**回收内存**，每个**ByteBuf**都实现了**ReferenceCounted**接口
+
+**具体如下：**
+
+* **新创建**的ByteBuf**默认计数为1**
+* 调用**release方法**会使**计数-1**，**如果计数为0，则内存将会被回收**。
+* 调用**retain方法**会使**计数+1**，表示调用者没用完之前，其它handler即使调用了release也不会造成回收
+* 当计数为 0 时，底层内存会被回收，这时即使ByteBuf对象还在，其各个方法均无法正常使用。
+
+**ByteBuf内存释放规则是：谁最后使用这块内存，谁就要调用release方法进行释放。**
+
+* 入站(Inbound处理器链)ByteBuf处理原则：
+  * 可以遵循谁最后使用内存谁就release。也可以让尾释放内存。
+    * 我们知道Inbound是从head->tail，所以tail是入站的终点，**TailContext**也会处理**内存释放**的问题。
+* 出站(Outbound处理器链)ByteBuf处理原则
+  * 可以遵循谁最后使用内存谁就release。也可以让头释放内存。
+  * 我们知道Outbound是从tail->head，所以head是出站的终点，**HeadContext**也会处理**内存释放**的问题。
+* 有时候不清楚ByteBuf的计数是多少次，但又必须彻底释放，可以**循环调用**release直到返回true
+
+```java
+while (!buffer.release()) {}
+```
+
+> 内存释放源码
+
+```java
+public interface ReferenceCounted {
+    ReferenceCounted retain();
+    /**
+         * Decreases the reference count by {@code 1} and deallocates this object if the reference count reaches at
+         * {@code 0}.
+         *
+         * @return {@code true} if and only if the reference count became {@code 0} and this object has been deallocated
+         */
+    boolean release();
+}
+```
+
+**从注释可以看出，让release成功释放内存后将会返回true。**
+
+**头尾释放内存源码：**
+
+```java
+    /**
+     * Called once a message hit the end of the {@link ChannelPipeline} without been handled by the user
+     * in {@link ChannelInboundHandler#channelRead(ChannelHandlerContext, Object)}. This method is responsible
+     * to call {@link ReferenceCountUtil#release(Object)} on the given msg at some point.
+     */
+    protected void onUnhandledInboundMessage(Object msg) {
+        try {
+            logger.debug(
+                    "Discarded inbound message {} that reached at the tail of the pipeline. " +
+                            "Please check your pipeline configuration.", msg);
+        } finally {
+            ReferenceCountUtil.release(msg);
+        }
+    }
+```
+
+```java
+    /**
+     * Try to call {@link ReferenceCounted#release()} if the specified message implements {@link ReferenceCounted}.
+     * If the specified message doesn't implement {@link ReferenceCounted}, this method does nothing.
+     */
+    public static boolean release(Object msg) {
+        if (msg instanceof ReferenceCounted) {
+            return ((ReferenceCounted) msg).release();
+        }
+        return false;
+    }
+```
+
+
+> 使用被释放的内存会怎样
+
+```java
+     ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer(10);
+
+      byteBuf.writeBytes("helloWorld".getBytes("utf-8"));
+
+      byteBuf.release(); //释放内存
+      ByteBufferUtil.log(byteBuf);
+```
+
+**结果：**
+
+```java
+Exception in thread "main" io.netty.util.IllegalReferenceCountException: refCnt: 0
+```
+
+
+> 注意：一旦ByteBuf的计数到0，再进行retain也没用
+
+```java
+      ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer(10);
+
+      byteBuf.writeBytes("helloWorld".getBytes("utf-8"));
+
+      byteBuf.release(); //-1
+      byteBuf.retain(); //+1
+      ByteBufferUtil.log(byteBuf);
+```
+
+**结果**
+
+```java
+Exception in thread "main" io.netty.util.IllegalReferenceCountException: refCnt: 0, increment: 1
+```
+
+> 内存切片slice
+
+```java
+public abstract ByteBuf slice(int index, int length);
+```
+
+* ByteBuf的内存切片也是零拷贝的体现之一,切片后的内存还是原来ByteBuf的内存，过程没有发生过内存复制，切片后的 ByteBuf 维护独立的 read，write 指针.
+* 切片后的ByteBuf需要调用retain使计数+1，防止原来的ByetBuf调用release释放内存导致切片的内存不可用。
+* 修改原ByteBuf中的值，也会影响切片后得到的ByteBuf。
+
+**代码案例：**
+
+```java
+      ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer(10);
+
+      byteBuf.writeBytes("helloWorld".getBytes("utf-8"));
+
+      ByteBufferUtil.log(byteBuf);
+
+      ByteBuf buf = byteBuf.slice(0, 5); //内存分片
+
+      ByteBufferUtil.log(buf);
+
+      System.out.println("---------------");
+
+      buf.setByte(1,'g'); //修改分片内存的值
+
+      //重新打印
+      ByteBufferUtil.log(byteBuf);
+
+      ByteBufferUtil.log(buf);
+```
+
+**结果：**
+
+```java
+read index:0 write index:10 capacity:10
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 65 6c 6c 6f 57 6f 72 6c 64                   |helloWorld      |
++--------+-------------------------------------------------+----------------+
+read index:0 write index:5 capacity:5
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 65 6c 6c 6f                                  |hello           |
++--------+-------------------------------------------------+----------------+
+---------------
+read index:0 write index:10 capacity:10
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 67 6c 6c 6f 57 6f 72 6c 64                   |hglloWorld      |
++--------+-------------------------------------------------+----------------+
+read index:0 write index:5 capacity:5
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 67 6c 6c 6f                                  |hgllo           |
++--------+-------------------------------------------------+----------------+
+
+Process finished with exit code 0
+
+```
+
+**结论：可以看出修改分片的内存的值，原内存也会受到影响，因为他们都是用同一块内存。**
+
+> ByteBuf优势
+
+* 池化思想-可以重用池中ByteBuf实例，更节约内存，减少内存溢出的可能
+* 读写指针分离，不需要像 ByteBuffer一样**切换**读写模式
+* 可以自动扩容
+* 支持链式调用，使用更流畅
+* 很多地方体现零拷贝，例如slice、duplicate、CompositeByteBuf
+
+
 
 
 
