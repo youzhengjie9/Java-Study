@@ -14668,3 +14668,289 @@ class io.netty.buffer.PooledUnsafeDirectByteBuf
 class io.netty.buffer.PooledUnsafeHeapByteBuf
 class io.netty.buffer.PooledUnsafeDirectByteBuf
 ```
+
+> 池化和非池化
+
+* Netty4.1**之前**默认是非池化
+* Netty4.1**之后**默认是池化，但是Android平台默认是**非池化**
+
+**池化优点：**
+
+* 本质上池化的意义就是可重用ByteBuf
+  * 没有池化的话每次需要使用ByteBuf都要重新申请内存。即使是堆内存，释放内存也会增大GC的压力
+  * 有了池化，则可以重用池中ByteBuf实例，并且采用了与jemalloc类似的内存分配算法提升分配效率
+  * 高并发下，池化更节约内存，减少内存溢出的可能。
+
+> IDEA IDE如何设置为非池化
+
+**只需要在IDEA IDE的VM options里面设置下面一段代码即可：**
+```text
+-Dio.netty.allocator.type={unpooled|pooled}
+```
+
+> ByteBuf组成
+
+* 最大容量与当前容量
+  * 在构造ByteBuf时，可传入两个参数，分别代表初始容量和最大容量，若未传入第二个参数（最大容量），最大容量默认为Integer.MAX_VALUE
+  * 当ByteBuf容量无法容纳所有数据时，会进行扩容操作，若超出最大容量，会抛出**java.lang.IndexOutOfBoundsException**异常
+* 读写操作不同于ByteBuffer只用position进行控制，ByteBuf分别由**读指针**和**写指针**两个指针控制。进行**读写操作**时，**无需进行模式的切换**
+  * 读指针前的部分被称为废弃部分，是已经读过的内容
+  * 读指针与写指针之间的空间称为可读部分
+  * 写指针与当前容量之间的空间称为可写部分
+
+![20210423143030](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/20210423143030.png)
+
+
+> ByteBuf写入
+
+```java
+      ByteBuf byteBuf1 = ByteBufAllocator.DEFAULT.buffer(10); //默认创建的是‘’直接内存‘’的ByteBuf
+      
+      byteBuf1.writeBytes("hello".getBytes("utf-8"));
+```
+
+**write和set方法的区别：**
+
+ByteBuf中**set开头**的一系列方法，也可以写入数据，但**不会改变写指针位置**
+
+
+> ByteBuf的扩容机制
+
+**当ByteBuf中的当前容量无法容纳写入的数据时，会自动进行扩容**
+
+**触发扩容：**
+```java
+      ByteBuf byteBuf1 = ByteBufAllocator.DEFAULT.buffer(10); //默认创建的是‘’直接内存‘’的ByteBuf
+      log(byteBuf1);
+      byteBuf1.writeBytes("helloaaaaaaaa".getBytes("utf-8"));
+      log(byteBuf1);
+```
+
+**结果：**
+
+```java
+read index:0 write index:0 capacity:10
+
+read index:0 write index:13 capacity:16
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 65 6c 6c 6f 61 61 61 61 61 61 61 61          |helloaaaaaaaa   |
++--------+-------------------------------------------------+----------------+
+
+```
+
+
+**扩容机制如下：**
+
+有两种情况：
+
+* 写入后的数据小于512字节
+  * 这种情况会选择使用16的整数倍进行扩容，比如写入后的数据是14字节，则16*1为最小整数倍，则会扩容到16字节
+* 写入后的数据大于512字节
+  * 这种情况会以2的n次方扩容，例如写入后的数据是600字节，此时大于512字节，那么容纳它的容量为2的10次方，因为2的9次方是512容纳不了，所以会扩容到1024字节
+  * 如果扩容后的大小大于**maxCapacity**，则会抛出**java.lang.IndexOutOfBoundsException**异常
+
+> ByteBuf读取
+
+**读取后会移动读指针**
+
+```java
+      ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer(10);
+
+      byteBuf.writeBytes("hello".getBytes("utf-8"));
+
+      byte b[]=new byte[5];
+      byteBuf.readBytes(b);
+
+     System.out.println(Arrays.toString(b));
+```
+ByteBuf以**get开头**的方法，这些方法**不会改变读指针的位置**
+
+##### ByteBuf日志工具类
+
+```java
+    public class ByteBufferUtil {
+    private static final char[] BYTE2CHAR = new char[256];
+    private static final char[] HEXDUMP_TABLE = new char[256 * 4];
+    private static final String[] HEXPADDING = new String[16];
+    private static final String[] HEXDUMP_ROWPREFIXES = new String[65536 >>> 4];
+    private static final String[] BYTE2HEX = new String[256];
+    private static final String[] BYTEPADDING = new String[16];
+
+    static {
+        final char[] DIGITS = "0123456789abcdef".toCharArray();
+        for (int i = 0; i < 256; i++) {
+            HEXDUMP_TABLE[i << 1] = DIGITS[i >>> 4 & 0x0F];
+            HEXDUMP_TABLE[(i << 1) + 1] = DIGITS[i & 0x0F];
+        }
+
+        int i;
+
+        // Generate the lookup table for hex dump paddings
+        for (i = 0; i < HEXPADDING.length; i++) {
+            int padding = HEXPADDING.length - i;
+            StringBuilder buf = new StringBuilder(padding * 3);
+            for (int j = 0; j < padding; j++) {
+                buf.append("   ");
+            }
+            HEXPADDING[i] = buf.toString();
+        }
+
+        // Generate the lookup table for the start-offset header in each row (up to 64KiB).
+        for (i = 0; i < HEXDUMP_ROWPREFIXES.length; i++) {
+            StringBuilder buf = new StringBuilder(12);
+            buf.append(StringUtil.NEWLINE);
+            buf.append(Long.toHexString(i << 4 & 0xFFFFFFFFL | 0x100000000L));
+            buf.setCharAt(buf.length() - 9, '|');
+            buf.append('|');
+            HEXDUMP_ROWPREFIXES[i] = buf.toString();
+        }
+
+        // Generate the lookup table for byte-to-hex-dump conversion
+        for (i = 0; i < BYTE2HEX.length; i++) {
+            BYTE2HEX[i] = ' ' + StringUtil.byteToHexStringPadded(i);
+        }
+
+        // Generate the lookup table for byte dump paddings
+        for (i = 0; i < BYTEPADDING.length; i++) {
+            int padding = BYTEPADDING.length - i;
+            StringBuilder buf = new StringBuilder(padding);
+            for (int j = 0; j < padding; j++) {
+                buf.append(' ');
+            }
+            BYTEPADDING[i] = buf.toString();
+        }
+
+        // Generate the lookup table for byte-to-char conversion
+        for (i = 0; i < BYTE2CHAR.length; i++) {
+            if (i <= 0x1f || i >= 0x7f) {
+                BYTE2CHAR[i] = '.';
+            } else {
+                BYTE2CHAR[i] = (char) i;
+            }
+        }
+    }
+
+    /**
+     * 打印所有内容
+     * @param buffer
+     */
+    public static void debugAll(ByteBuffer buffer) {
+        int oldlimit = buffer.limit();
+        buffer.limit(buffer.capacity());
+        StringBuilder origin = new StringBuilder(256);
+        appendPrettyHexDump(origin, buffer, 0, buffer.capacity());
+        System.out.println("+--------+-------------------- all ------------------------+----------------+");
+        System.out.printf("position: [%d], limit: [%d]\n", buffer.position(), oldlimit);
+        System.out.println(origin);
+        buffer.limit(oldlimit);
+    }
+
+    /**
+     * 打印可读取内容
+     * @param buffer
+     */
+    public static void debugRead(ByteBuffer buffer) {
+        StringBuilder builder = new StringBuilder(256);
+        appendPrettyHexDump(builder, buffer, buffer.position(), buffer.limit() - buffer.position());
+        System.out.println("+--------+-------------------- read -----------------------+----------------+");
+        System.out.printf("position: [%d], limit: [%d]\n", buffer.position(), buffer.limit());
+        System.out.println(builder);
+    }
+
+    private static void appendPrettyHexDump(StringBuilder dump, ByteBuffer buf, int offset, int length) {
+        if (MathUtil.isOutOfBounds(offset, length, buf.capacity())) {
+            throw new IndexOutOfBoundsException(
+                    "expected: " + "0 <= offset(" + offset + ") <= offset + length(" + length
+                            + ") <= " + "buf.capacity(" + buf.capacity() + ')');
+        }
+        if (length == 0) {
+            return;
+        }
+        dump.append(
+                "         +-------------------------------------------------+" +
+                        StringUtil.NEWLINE + "         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |" +
+                        StringUtil.NEWLINE + "+--------+-------------------------------------------------+----------------+");
+
+        final int startIndex = offset;
+        final int fullRows = length >>> 4;
+        final int remainder = length & 0xF;
+
+        // Dump the rows which have 16 bytes.
+        for (int row = 0; row < fullRows; row++) {
+            int rowStartIndex = (row << 4) + startIndex;
+
+            // Per-row prefix.
+            appendHexDumpRowPrefix(dump, row, rowStartIndex);
+
+            // Hex dump
+            int rowEndIndex = rowStartIndex + 16;
+            for (int j = rowStartIndex; j < rowEndIndex; j++) {
+                dump.append(BYTE2HEX[getUnsignedByte(buf, j)]);
+            }
+            dump.append(" |");
+
+            // ASCII dump
+            for (int j = rowStartIndex; j < rowEndIndex; j++) {
+                dump.append(BYTE2CHAR[getUnsignedByte(buf, j)]);
+            }
+            dump.append('|');
+        }
+
+        // Dump the last row which has less than 16 bytes.
+        if (remainder != 0) {
+            int rowStartIndex = (fullRows << 4) + startIndex;
+            appendHexDumpRowPrefix(dump, fullRows, rowStartIndex);
+
+            // Hex dump
+            int rowEndIndex = rowStartIndex + remainder;
+            for (int j = rowStartIndex; j < rowEndIndex; j++) {
+                dump.append(BYTE2HEX[getUnsignedByte(buf, j)]);
+            }
+            dump.append(HEXPADDING[remainder]);
+            dump.append(" |");
+
+            // Ascii dump
+            for (int j = rowStartIndex; j < rowEndIndex; j++) {
+                dump.append(BYTE2CHAR[getUnsignedByte(buf, j)]);
+            }
+            dump.append(BYTEPADDING[remainder]);
+            dump.append('|');
+        }
+
+        dump.append(StringUtil.NEWLINE +
+                "+--------+-------------------------------------------------+----------------+");
+    }
+
+    private static void appendHexDumpRowPrefix(StringBuilder dump, int row, int rowStartIndex) {
+        if (row < HEXDUMP_ROWPREFIXES.length) {
+            dump.append(HEXDUMP_ROWPREFIXES[row]);
+        } else {
+            dump.append(StringUtil.NEWLINE);
+            dump.append(Long.toHexString(rowStartIndex & 0xFFFFFFFFL | 0x100000000L));
+            dump.setCharAt(dump.length() - 9, '|');
+            dump.append('|');
+        }
+    }
+
+    public static short getUnsignedByte(ByteBuffer buffer, int index) {
+        return (short) (buffer.get(index) & 0xFF);
+    }
+
+    private static void log(ByteBuf buffer) {
+        int length = buffer.readableBytes();
+        int rows = length / 16 + (length % 15 == 0 ? 0 : 1) + 4;
+        StringBuilder buf = new StringBuilder(rows * 80 * 2)
+                .append("read index:").append(buffer.readerIndex())
+                .append(" write index:").append(buffer.writerIndex())
+                .append(" capacity:").append(buffer.capacity())
+                .append(NEWLINE);
+        io.netty.buffer.ByteBufUtil.appendPrettyHexDump(buf, buffer);
+        System.out.println(buf.toString());
+    }
+}
+```
+
+
+
