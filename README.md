@@ -15146,6 +15146,217 @@ Process finished with exit code 0
 * 很多地方体现零拷贝，例如slice、duplicate、CompositeByteBuf
 
 
+### Netty进阶
+
+#### 粘包和半包/拆包问题
+
+> 粘包问题演示
+
+**服务器端：**
+```java
+  private static final Logger log= LoggerFactory.getLogger(NettyServer.class);
+
+  public static void main(String[] args) {
+
+      NioEventLoopGroup boss = new NioEventLoopGroup(1);
+      NioEventLoopGroup worker = new NioEventLoopGroup(6);
+
+      new ServerBootstrap()
+              .group(boss,worker)
+              .channel(NioServerSocketChannel.class)
+              .childHandler(new ChannelInitializer<NioSocketChannel>() {
+                  @Override
+                  protected void initChannel(NioSocketChannel ch) throws Exception {
+
+                      //不进行加解密不然展示不出粘包效果
+//                      ch.pipeline().addLast(new StringDecoder());
+
+                      ch.pipeline().addLast(new LoggingHandler());
+
+                      ch.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+
+                          @Override
+                          public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                              log.info("客户端已成功连接服务器");
+                              super.channelActive(ctx);
+                          }
+
+                          @Override
+                          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+
+                              log.info("msg={}",msg);
+                              super.channelRead(ctx, msg);
+                          }
+                      });
+
+
+                  }
+              }).bind(8080);
+  }
+```
+
+
+**客户端：**
+
+```java
+  private static final Logger log= LoggerFactory.getLogger(NettyClient.class);
+
+  public static void main(String[] args) {
+
+    NioEventLoopGroup eventLoopGroup = new NioEventLoopGroup();
+    ChannelFuture channelFuture = new Bootstrap()
+            .group(eventLoopGroup)
+            .channel(NioSocketChannel.class)
+            .handler(new ChannelInitializer<Channel>() {
+              @Override
+              protected void initChannel(Channel ch) throws Exception {
+
+                //不进行加解密不然展示不出粘包效果
+//                ch.pipeline().addLast(new StringEncoder());
+                ch.pipeline().addLast(new LoggingHandler());
+
+
+
+              }
+            }).connect("localhost", 8080);
+
+    channelFuture.addListener(new ChannelFutureListener() {
+      @Override
+      public void operationComplete(ChannelFuture future) throws Exception {
+
+        Channel channel = future.channel();
+
+        ByteBuf byteBuf = channel.alloc().buffer(16);
+        for (int i=0;i<10;i++){
+          byteBuf.retain();
+          byteBuf.writeBytes(("hello").getBytes("utf-8"));
+          channel.writeAndFlush(byteBuf);
+          byteBuf.clear();
+        }
+
+        channel.close();
+
+        ChannelFuture closeFuture = channel.closeFuture();
+        closeFuture.addListener(new ChannelFutureListener() {
+          @Override
+          public void operationComplete(ChannelFuture future) throws Exception {
+            eventLoopGroup.shutdownGracefully();
+          }
+        });
+      }
+    });
+
+  }
+```
+
+**服务器端输出结果：**
+
+```java
+16:00:37.869 [nioEventLoopGroup-3-1] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0xa191631f, L:/127.0.0.1:8080 - R:/127.0.0.1:53693] READ: 50B
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 65 6c 6c 6f 68 65 6c 6c 6f 68 65 6c 6c 6f 68 |hellohellohelloh|
+|00000010| 65 6c 6c 6f 68 65 6c 6c 6f 68 65 6c 6c 6f 68 65 |ellohellohellohe|
+|00000020| 6c 6c 6f 68 65 6c 6c 6f 68 65 6c 6c 6f 68 65 6c |llohellohellohel|
+|00000030| 6c 6f                                           |lo              |
++--------+-------------------------------------------------+----------------+
+```
+
+**可以看出原来我们是在客户端分10次发送，而服务器端却一下把10次的数据都粘在一起了，这就是粘包问题。**
+
+
+> 半包问题展示
+
+**服务器端：**
+
+```java
+  private static final Logger log= LoggerFactory.getLogger(NettyServer.class);
+
+  public static void main(String[] args) {
+
+      NioEventLoopGroup boss = new NioEventLoopGroup(1);
+      NioEventLoopGroup worker = new NioEventLoopGroup(6);
+
+    new ServerBootstrap()
+        .group(boss, worker)
+        .channel(NioServerSocketChannel.class)
+        // 半包问题：例如，发送方发送100字节数据，而接收方最多只能接收30字节数据，这就是半包问题
+            //option(ChannelOption.SO_RCVBUF,10),调整接收缓冲区大小（滑动窗口）
+        .option(ChannelOption.SO_RCVBUF,10)
+        .childHandler(
+            new ChannelInitializer<NioSocketChannel>() {
+              @Override
+              protected void initChannel(NioSocketChannel ch) throws Exception {
+
+                // 不进行加解密不然展示不出粘包效果
+                //                      ch.pipeline().addLast(new StringDecoder());
+
+                ch.pipeline().addLast(new LoggingHandler());
+
+                ch.pipeline()
+                    .addLast(
+                        new ChannelInboundHandlerAdapter() {
+
+                          @Override
+                          public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                            log.info("客户端已成功连接服务器");
+                            super.channelActive(ctx);
+                          }
+
+                          @Override
+                          public void channelRead(ChannelHandlerContext ctx, Object msg)
+                              throws Exception {
+
+                            log.info("msg={}", msg);
+                            super.channelRead(ctx, msg);
+                          }
+                        });
+              }
+            })
+        .bind(8080);
+  }
+```
+
+**只需使用这个方法即可**
+* option(ChannelOption.SO_RCVBUF,10)
+
+**option(ChannelOption.SO_RCVBUF,10),调整接收缓冲区大小。由于接收缓存区的大小<发送方发送的数据大小，所以产生了半包问题。**
+
+
+> 现象分析
+
+**粘包：**
+
+* 产生现象
+  * 第一次发送abc，第二次发送def，接收到的是一整个abcdef
+* 原因
+  * Netty层
+    * 接收方的**接收缓冲区太大**，Netty的接收缓冲区默认是1024字节
+  * 网络层
+    * TCP滑动窗口：假如发送方发送100字节数据,而滑动窗口缓冲区可容纳>100字节数据，这时候就会出现粘包问题。
+    * Nagle 算法：会造成粘包
+
+**半包/拆包：**
+
+* 产生现象
+  * 发送abcdef数据，接收方第一次收到ab,第二次收到cd，第三次收到ef
+* 原因
+  * Netty层
+    * 接收方的**接收缓冲区太小**，发送方的**数据过大**，导致接收方无法一次接收下所有数据，就会半包/拆包
+  * 网络层
+    * 滑动窗口：假设接收方的窗口只剩了128bytes，发送方的报文大小是256bytes，这时接收方窗口中无法容纳发送方的全部报文，发送方只能先发送前128bytes，等待ack后才能发送剩余部分，这就造成了半包
+  * 数据链路层
+    * MSS 限制：当发送的数据超过MSS限制后，会将数据切分发送，就会造成半包
+
+**发送这些问题的本质：因为 TCP 是流式协议，消息无边界**
+
+
+
+
+
+
+
 
 
 
