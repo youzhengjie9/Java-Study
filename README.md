@@ -1,7 +1,7 @@
 # Java-Study
 
 #### 介绍
-**作者自己的手写笔记，这只是一小部分(大概只占了30%)，全都是一人完成，如有错误请见谅。该文档将会持续完善，直至不从事Java行业**
+**作者自己的手写笔记，这只是一小部分(大概只占了30%)，全都是一人完成，如有错误请见谅。该文档将会持续完善。**
 
 ## Java并发编程（多线程高并发）
 
@@ -15353,10 +15353,124 @@ Process finished with exit code 0
 
 
 
+#### 粘包和半包/拆包解决方案
+
+##### 短连接
+
+**短连接：即每发送一条数据就重新连接再次发送，反复此操作。**
+
+**短连接的缺点是显而易见的，每次发送一条数据都要重新连接，这样会大大的浪费时间，因为连接是需要时间的。**
+
+客户端每次向服务器发送数据以后，就与服务器断开连接，此时的消息边界为连接建立到连接断开。
+这时**便无需使用**滑动窗口等技术来缓冲数据，则**不会发生粘包**现象。
+但如果一次性数据发送过多，接收方无法一次性容纳所有数据，还是会发生半包现象，所以**短链接无法解决半包现象**
 
 
+> 采用短连接解决粘包代码
+
+**服务端：**
+
+```java
+  private static final Logger log = LoggerFactory.getLogger(NettyServer.class);
+
+  public static void main(String[] args) {
+
+    NioEventLoopGroup boss = new NioEventLoopGroup(1);
+    NioEventLoopGroup worker = new NioEventLoopGroup(6);
+
+    new ServerBootstrap()
+        .group(boss, worker)
+        .channel(NioServerSocketChannel.class)
+        .childHandler(
+            new ChannelInitializer<NioSocketChannel>() {
+              @Override
+              protected void initChannel(NioSocketChannel ch) throws Exception {
+
+                ch.pipeline().addLast(new LoggingHandler());
+
+                ch.pipeline()
+                    .addLast(
+                        new ChannelInboundHandlerAdapter() {
+
+                          @Override
+                          public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                            log.info("客户端已成功连接服务器");
+                            super.channelActive(ctx);
+                          }
+
+                            @Override
+                            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                              log.info("msg="+msg);
+                              super.channelRead(ctx, msg);
+                            }
+                        });
+              }
+            })
+        .bind(8080);
+  }
+```
+
+**客户端：**
+
+```java
+  private static final Logger log= LoggerFactory.getLogger(NettyClient.class);
+
+  public static void main(String[] args) {
+
+    //采用短连接解决“”粘包“”问题，无法解决半包问题
+    for (int i = 0; i < 10; i++) {
+      sendMessage("hello");
+    }
 
 
+  }
 
+
+  public static void sendMessage(String msg){
+
+     NioEventLoopGroup eventLoopGroup = new NioEventLoopGroup();
+     ChannelFuture channelFuture = new Bootstrap()
+            .group(eventLoopGroup)
+            .channel(NioSocketChannel.class)
+            .handler(new ChannelInitializer<Channel>() {
+              @Override
+              protected void initChannel(Channel ch) throws Exception {
+
+                //不进行加解密不然展示不出粘包效果
+//                ch.pipeline().addLast(new StringEncoder());
+                ch.pipeline().addLast(new LoggingHandler());
+
+                ch.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+                  @Override
+                  public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                    ByteBuf buffer = ctx.alloc().buffer(16);
+                    buffer.writeBytes(msg.getBytes("utf-8"));
+                    ch.writeAndFlush(buffer);
+                    ch.close();
+                    ChannelFuture closeFuture = ch.closeFuture();
+                    closeFuture.addListener(new ChannelFutureListener() {
+                      @Override
+                      public void operationComplete(ChannelFuture future) throws Exception {
+                        eventLoopGroup.shutdownGracefully();
+                      }
+                    });
+                  }
+                });
+
+              }
+            }).connect("localhost", 8080);
+
+
+  }
+```
+
+##### 定长解码器
+
+客户端于服务器约定一个最大长度，保证客户端每次发送的数据长度都不会大于该长度。若发送数据长度不足则需要补齐至该长度。
+服务器接收数据时，将接收到的数据按照约定的最大长度进行拆分，即使发送过程中产生了粘包，也可以通过定长解码器将数据正确地进行拆分。服务端需要用到**FixedLengthFrameDecoder**对数据进行定长解码
+
+##### 行解码器
+
+**对于其他解码器，我还是更喜欢行解码器。行解码器主要是靠分隔符\n来判断行进行解码，不过需要进行限制长度，以免服务器一直搜索\n造成卡死。**
 
 
