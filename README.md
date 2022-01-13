@@ -15866,6 +15866,376 @@ Process finished with exit code 0
   }
 ```
 
+#### Netty协议解析
 
+
+##### Redis协议
+
+**我们要用netty执行Redis命令就需要遵循Redis协议。**
+
+> Redis协议格式
+
+```text
+*<参数数量> \r\n
+$<参数1的字节数量> \r\n
+<参数1的数据> \r\n
+...
+$<参数N的字节数量> \r\n
+<参数N的数据> \r\n
+```
+
+
+> 使用Netty搭建一个Redis client
+
+```java
+/**
+ * @author 游政杰
+ * @date 2022/1/13
+ * 模拟 Redis client
+ */
+public class RedisSender {
+
+    //true为继续循环，false是退出循环
+  private static ThreadLocal<Boolean> threadLocal=new ThreadLocal<Boolean>();
+  private static final Logger log= LoggerFactory.getLogger(RedisSender.class);
+
+  public static void main(String[] args) {
+
+      //Netty“”客户端“”执行Redis命令
+      NioEventLoopGroup nioEventLoopGroup = new NioEventLoopGroup();
+      try{
+
+      new Bootstrap()
+              .group(nioEventLoopGroup)
+              .channel(NioSocketChannel.class)
+              .handler(new ChannelInitializer<Channel>() {
+                  @Override
+                  protected void initChannel(Channel ch) throws Exception {
+
+                      threadLocal.set(true); //默认是继续循环
+
+                      ch.pipeline().addLast(new LoggingHandler());
+
+
+                      ch.pipeline().addLast("handle1",new ChannelInboundHandlerAdapter(){
+
+                          //连接成功之后调用
+                          @Override
+                          public void channelActive(ChannelHandlerContext ctx) throws Exception {
+
+                              Scanner sc = new Scanner(System.in);
+                              for (;;){
+                                  if(!threadLocal.get()){
+                                      System.out.println("退出成功");
+                                      break;
+                                  }
+                                  printInfo();
+                                  String sel = sc.next();
+                                  switch (sel)
+                                  {
+                                      case "a":
+                                          sc.nextLine(); //***上面会传下来字符，导致无法输入字符串，所以要加上这句，目的是吸收上面传下来的多余字符串
+                                          System.out.println("请输入Redis命令[以单空格分隔]：");
+                                          String redis_cmd = sc.nextLine();
+                                          String decodeProtocol = decodeProtocol(redis_cmd);
+                                          ByteBuf buffer = ctx.alloc().buffer(16);
+                                          buffer.writeBytes(decodeProtocol.getBytes("utf-8"));
+                                          ctx.writeAndFlush(buffer);
+                                          buffer.clear();
+                                          break;
+                                      case "q":
+                                          ch.close();
+                                          ChannelFuture closeFuture = ch.closeFuture();
+                                          closeFuture.addListener(new ChannelFutureListener() {
+                                              @Override
+                                              public void operationComplete(ChannelFuture future) throws Exception {
+                                                  nioEventLoopGroup.shutdownGracefully();
+                                                  threadLocal.set(false); //退出只需要设置为false即可
+                                              }
+                                          });
+                                          break;
+                                      default:
+                                          System.out.println("无该选项");
+                                          break;
+                                  }
+                              }
+
+
+                          }
+                      });
+                  }
+              }).connect("localhost",6379);
+      }catch (Exception e){
+          e.printStackTrace();
+          nioEventLoopGroup.shutdownGracefully();
+      }
+
+  }
+
+  private static void printInfo()
+  {
+    System.out.println("请输入以下字符选项：");
+    System.out.println("输入a：执行Redis命令");
+    System.out.println("输入q：退出");
+  }
+
+
+    /**
+     * 协议解析
+     * @param redis_cmd 命令
+     * @return
+     */
+    //set myname abc
+    //del key
+    //get key
+  private static synchronized String decodeProtocol(String redis_cmd){
+      String delimiter1="*";
+      String delimiter2="$";
+      String delimiter3="\r\n";
+      StringBuffer decodeCmd = new StringBuffer();//使用线程安全的StringBuffer
+      List<String> cmd = Arrays.asList(redis_cmd.split(" "));
+      decodeCmd.append(delimiter1+cmd.size()+delimiter3);
+      cmd.forEach((e)->{
+
+          decodeCmd.append(delimiter2+e.length()+delimiter3);
+          decodeCmd.append(e+delimiter3);
+      });
+
+      return decodeCmd.toString();
+  }
+
+}
+
+```
+ 
+##### Http协议
+
+**http服务端：**
+```java
+public class HttpServer {
+    //http服务器
+  public static void main(String[] args) {
+
+
+      NioEventLoopGroup boss = new NioEventLoopGroup(1);
+      NioEventLoopGroup worker = new NioEventLoopGroup(6);
+      new ServerBootstrap()
+              .group(boss,worker)
+              .channel(NioServerSocketChannel.class)
+              .childHandler(new ChannelInitializer<NioSocketChannel>() {
+
+                  @Override
+                  protected void initChannel(NioSocketChannel ch) throws Exception {
+
+                      ch.pipeline().addLast(new LoggingHandler());
+                      //netty自带的http协议转换
+                      ch.pipeline().addLast(new HttpServerCodec());
+
+                      ch.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+
+                          @Override
+                          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+
+                              //msg有两种类型
+                              //class io.netty.handler.codec.http.DefaultHttpRequest
+                              //class io.netty.handler.codec.http.LastHttpContent$1
+
+                              if(msg instanceof HttpRequest){
+
+                                  HttpRequest request=(HttpRequest)msg;
+
+                                  //输出响应DefaultFullHttpResponse(HttpVersion version, HttpResponseStatus status)
+                                  DefaultFullHttpResponse response = new DefaultFullHttpResponse(request.protocolVersion(), HttpResponseStatus.OK);
+
+                                  String s="hello 2022";
+                                  byte b[]=s.getBytes("utf-8");
+                                  //从请求头设置响应数据长度，以免浏览器空转
+                                  //content_length是io.netty.handler.codec.http包下的类
+                                  response.headers().setInt(CONTENT_LENGTH,b.length);
+
+                                  //输出内容
+                                  response.content().writeBytes(b);
+
+                                  ctx.channel().writeAndFlush(response);
+                              }
+
+                              super.channelRead(ctx, msg);
+                          }
+                      });
+                  }
+              }).bind("localhost",8080);
+
+
+  }
+}
+
+```
+
+![p2.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/p2.png)
+
+
+**输出结果：**
+
+```java
+16:03:05.785 [nioEventLoopGroup-3-3] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x924b66ea, L:/127.0.0.1:8080 - R:/127.0.0.1:52486] REGISTERED
+16:03:05.785 [nioEventLoopGroup-3-3] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x924b66ea, L:/127.0.0.1:8080 - R:/127.0.0.1:52486] ACTIVE
+16:03:05.788 [nioEventLoopGroup-3-3] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x924b66ea, L:/127.0.0.1:8080 - R:/127.0.0.1:52486] READ: 756B
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 47 45 54 20 2f 20 48 54 54 50 2f 31 2e 31 0d 0a |GET / HTTP/1.1..|
+|00000010| 48 6f 73 74 3a 20 6c 6f 63 61 6c 68 6f 73 74 3a |Host: localhost:|
+|00000020| 38 30 38 30 0d 0a 55 73 65 72 2d 41 67 65 6e 74 |8080..User-Agent|
+|00000030| 3a 20 4d 6f 7a 69 6c 6c 61 2f 35 2e 30 20 28 57 |: Mozilla/5.0 (W|
+|00000040| 69 6e 64 6f 77 73 20 4e 54 20 31 30 2e 30 3b 20 |indows NT 10.0; |
+|00000050| 57 69 6e 36 34 3b 20 78 36 34 3b 20 72 76 3a 39 |Win64; x64; rv:9|
+|00000060| 35 2e 30 29 20 47 65 63 6b 6f 2f 32 30 31 30 30 |5.0) Gecko/20100|
+|00000070| 31 30 31 20 46 69 72 65 66 6f 78 2f 39 35 2e 30 |101 Firefox/95.0|
+|00000080| 0d 0a 41 63 63 65 70 74 3a 20 74 65 78 74 2f 68 |..Accept: text/h|
+|00000090| 74 6d 6c 2c 61 70 70 6c 69 63 61 74 69 6f 6e 2f |tml,application/|
+|000000a0| 78 68 74 6d 6c 2b 78 6d 6c 2c 61 70 70 6c 69 63 |xhtml+xml,applic|
+|000000b0| 61 74 69 6f 6e 2f 78 6d 6c 3b 71 3d 30 2e 39 2c |ation/xml;q=0.9,|
+|000000c0| 69 6d 61 67 65 2f 61 76 69 66 2c 69 6d 61 67 65 |image/avif,image|
+|000000d0| 2f 77 65 62 70 2c 2a 2f 2a 3b 71 3d 30 2e 38 0d |/webp,*/*;q=0.8.|
+|000000e0| 0a 41 63 63 65 70 74 2d 4c 61 6e 67 75 61 67 65 |.Accept-Language|
+|000000f0| 3a 20 7a 68 2d 43 4e 2c 7a 68 3b 71 3d 30 2e 38 |: zh-CN,zh;q=0.8|
+|00000100| 2c 7a 68 2d 54 57 3b 71 3d 30 2e 37 2c 7a 68 2d |,zh-TW;q=0.7,zh-|
+|00000110| 48 4b 3b 71 3d 30 2e 35 2c 65 6e 2d 55 53 3b 71 |HK;q=0.5,en-US;q|
+|00000120| 3d 30 2e 33 2c 65 6e 3b 71 3d 30 2e 32 0d 0a 41 |=0.3,en;q=0.2..A|
+|00000130| 63 63 65 70 74 2d 45 6e 63 6f 64 69 6e 67 3a 20 |ccept-Encoding: |
+|00000140| 67 7a 69 70 2c 20 64 65 66 6c 61 74 65 0d 0a 43 |gzip, deflate..C|
+|00000150| 6f 6e 6e 65 63 74 69 6f 6e 3a 20 6b 65 65 70 2d |onnection: keep-|
+|00000160| 61 6c 69 76 65 0d 0a 43 6f 6f 6b 69 65 3a 20 48 |alive..Cookie: H|
+|00000170| 6d 5f 6c 76 74 5f 62 33 39 33 64 31 35 33 61 65 |m_lvt_b393d153ae|
+|00000180| 62 32 36 62 34 36 65 39 34 33 31 66 61 62 61 66 |b26b46e9431fabaf|
+|00000190| 30 66 36 31 39 30 3d 31 36 32 31 39 30 35 38 35 |0f6190=162190585|
+|000001a0| 30 3b 20 49 64 65 61 2d 33 35 32 63 36 33 39 66 |0; Idea-352c639f|
+|000001b0| 3d 31 32 37 64 31 61 65 35 2d 34 34 31 37 2d 34 |=127d1ae5-4417-4|
+|000001c0| 61 62 36 2d 61 61 64 33 2d 36 32 36 62 66 38 36 |ab6-aad3-626bf86|
+|000001d0| 34 62 62 62 33 3b 20 55 4d 5f 64 69 73 74 69 6e |4bbb3; UM_distin|
+|000001e0| 63 74 69 64 3d 31 37 61 61 65 35 65 65 63 33 34 |ctid=17aae5eec34|
+|000001f0| 35 31 30 2d 30 39 39 37 35 66 34 36 64 62 65 63 |510-09975f46dbec|
+|00000200| 33 38 38 2d 34 63 33 65 32 35 37 61 2d 31 34 34 |388-4c3e257a-144|
+|00000210| 30 30 30 2d 31 37 61 61 65 35 65 65 63 33 36 33 |000-17aae5eec363|
+|00000220| 61 62 3b 20 43 4e 5a 5a 44 41 54 41 31 32 35 38 |ab; CNZZDATA1258|
+|00000230| 35 36 36 39 36 33 3d 31 36 31 32 35 36 38 34 34 |566963=161256844|
+|00000240| 38 2d 31 36 32 36 34 32 32 37 30 36 2d 25 37 43 |8-1626422706-%7C|
+|00000250| 31 36 32 36 34 32 38 31 35 30 0d 0a 55 70 67 72 |1626428150..Upgr|
+|00000260| 61 64 65 2d 49 6e 73 65 63 75 72 65 2d 52 65 71 |ade-Insecure-Req|
+|00000270| 75 65 73 74 73 3a 20 31 0d 0a 53 65 63 2d 46 65 |uests: 1..Sec-Fe|
+|00000280| 74 63 68 2d 44 65 73 74 3a 20 64 6f 63 75 6d 65 |tch-Dest: docume|
+|00000290| 6e 74 0d 0a 53 65 63 2d 46 65 74 63 68 2d 4d 6f |nt..Sec-Fetch-Mo|
+|000002a0| 64 65 3a 20 6e 61 76 69 67 61 74 65 0d 0a 53 65 |de: navigate..Se|
+|000002b0| 63 2d 46 65 74 63 68 2d 53 69 74 65 3a 20 6e 6f |c-Fetch-Site: no|
+|000002c0| 6e 65 0d 0a 53 65 63 2d 46 65 74 63 68 2d 55 73 |ne..Sec-Fetch-Us|
+|000002d0| 65 72 3a 20 3f 31 0d 0a 43 61 63 68 65 2d 43 6f |er: ?1..Cache-Co|
+|000002e0| 6e 74 72 6f 6c 3a 20 6d 61 78 2d 61 67 65 3d 30 |ntrol: max-age=0|
+|000002f0| 0d 0a 0d 0a                                     |....            |
++--------+-------------------------------------------------+----------------+
+16:03:05.789 [nioEventLoopGroup-3-3] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x924b66ea, L:/127.0.0.1:8080 - R:/127.0.0.1:52486] WRITE: 49B
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 48 54 54 50 2f 31 2e 31 20 32 30 30 20 4f 4b 0d |HTTP/1.1 200 OK.|
+|00000010| 0a 63 6f 6e 74 65 6e 74 2d 6c 65 6e 67 74 68 3a |.content-length:|
+|00000020| 20 31 30 0d 0a 0d 0a 68 65 6c 6c 6f 20 32 30 32 | 10....hello 202|
+|00000030| 32                                              |2               |
++--------+-------------------------------------------------+----------------+
+16:03:05.789 [nioEventLoopGroup-3-3] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x924b66ea, L:/127.0.0.1:8080 - R:/127.0.0.1:52486] FLUSH
+16:03:05.789 [nioEventLoopGroup-3-3] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded inbound message DefaultHttpRequest(decodeResult: success, version: HTTP/1.1)
+GET / HTTP/1.1
+Host: localhost:8080
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:95.0) Gecko/20100101 Firefox/95.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Cookie: Hm_lvt_b393d153aeb26b46e9431fabaf0f6190=1621905850; Idea-352c639f=127d1ae5-4417-4ab6-aad3-626bf864bbb3; UM_distinctid=17aae5eec34510-09975f46dbec388-4c3e257a-144000-17aae5eec363ab; CNZZDATA1258566963=1612568448-1626422706-%7C1626428150
+Upgrade-Insecure-Requests: 1
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: none
+Sec-Fetch-User: ?1
+Cache-Control: max-age=0 that reached at the tail of the pipeline. Please check your pipeline configuration.
+16:03:05.790 [nioEventLoopGroup-3-3] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded message pipeline : [LoggingHandler#0, HttpServerCodec#0, HttpServer$1$1#0, DefaultChannelPipeline$TailContext#0]. Channel : [id: 0x924b66ea, L:/127.0.0.1:8080 - R:/127.0.0.1:52486].
+16:03:05.790 [nioEventLoopGroup-3-3] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded inbound message EmptyLastHttpContent that reached at the tail of the pipeline. Please check your pipeline configuration.
+16:03:05.790 [nioEventLoopGroup-3-3] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded message pipeline : [LoggingHandler#0, HttpServerCodec#0, HttpServer$1$1#0, DefaultChannelPipeline$TailContext#0]. Channel : [id: 0x924b66ea, L:/127.0.0.1:8080 - R:/127.0.0.1:52486].
+16:03:05.790 [nioEventLoopGroup-3-3] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x924b66ea, L:/127.0.0.1:8080 - R:/127.0.0.1:52486] READ COMPLETE
+16:03:05.809 [nioEventLoopGroup-3-3] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x924b66ea, L:/127.0.0.1:8080 - R:/127.0.0.1:52486] READ: 693B
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 47 45 54 20 2f 66 61 76 69 63 6f 6e 2e 69 63 6f |GET /favicon.ico|
+|00000010| 20 48 54 54 50 2f 31 2e 31 0d 0a 48 6f 73 74 3a | HTTP/1.1..Host:|
+|00000020| 20 6c 6f 63 61 6c 68 6f 73 74 3a 38 30 38 30 0d | localhost:8080.|
+|00000030| 0a 55 73 65 72 2d 41 67 65 6e 74 3a 20 4d 6f 7a |.User-Agent: Moz|
+|00000040| 69 6c 6c 61 2f 35 2e 30 20 28 57 69 6e 64 6f 77 |illa/5.0 (Window|
+|00000050| 73 20 4e 54 20 31 30 2e 30 3b 20 57 69 6e 36 34 |s NT 10.0; Win64|
+|00000060| 3b 20 78 36 34 3b 20 72 76 3a 39 35 2e 30 29 20 |; x64; rv:95.0) |
+|00000070| 47 65 63 6b 6f 2f 32 30 31 30 30 31 30 31 20 46 |Gecko/20100101 F|
+|00000080| 69 72 65 66 6f 78 2f 39 35 2e 30 0d 0a 41 63 63 |irefox/95.0..Acc|
+|00000090| 65 70 74 3a 20 69 6d 61 67 65 2f 61 76 69 66 2c |ept: image/avif,|
+|000000a0| 69 6d 61 67 65 2f 77 65 62 70 2c 2a 2f 2a 0d 0a |image/webp,*/*..|
+|000000b0| 41 63 63 65 70 74 2d 4c 61 6e 67 75 61 67 65 3a |Accept-Language:|
+|000000c0| 20 7a 68 2d 43 4e 2c 7a 68 3b 71 3d 30 2e 38 2c | zh-CN,zh;q=0.8,|
+|000000d0| 7a 68 2d 54 57 3b 71 3d 30 2e 37 2c 7a 68 2d 48 |zh-TW;q=0.7,zh-H|
+|000000e0| 4b 3b 71 3d 30 2e 35 2c 65 6e 2d 55 53 3b 71 3d |K;q=0.5,en-US;q=|
+|000000f0| 30 2e 33 2c 65 6e 3b 71 3d 30 2e 32 0d 0a 41 63 |0.3,en;q=0.2..Ac|
+|00000100| 63 65 70 74 2d 45 6e 63 6f 64 69 6e 67 3a 20 67 |cept-Encoding: g|
+|00000110| 7a 69 70 2c 20 64 65 66 6c 61 74 65 0d 0a 43 6f |zip, deflate..Co|
+|00000120| 6e 6e 65 63 74 69 6f 6e 3a 20 6b 65 65 70 2d 61 |nnection: keep-a|
+|00000130| 6c 69 76 65 0d 0a 52 65 66 65 72 65 72 3a 20 68 |live..Referer: h|
+|00000140| 74 74 70 3a 2f 2f 6c 6f 63 61 6c 68 6f 73 74 3a |ttp://localhost:|
+|00000150| 38 30 38 30 2f 0d 0a 43 6f 6f 6b 69 65 3a 20 48 |8080/..Cookie: H|
+|00000160| 6d 5f 6c 76 74 5f 62 33 39 33 64 31 35 33 61 65 |m_lvt_b393d153ae|
+|00000170| 62 32 36 62 34 36 65 39 34 33 31 66 61 62 61 66 |b26b46e9431fabaf|
+|00000180| 30 66 36 31 39 30 3d 31 36 32 31 39 30 35 38 35 |0f6190=162190585|
+|00000190| 30 3b 20 49 64 65 61 2d 33 35 32 63 36 33 39 66 |0; Idea-352c639f|
+|000001a0| 3d 31 32 37 64 31 61 65 35 2d 34 34 31 37 2d 34 |=127d1ae5-4417-4|
+|000001b0| 61 62 36 2d 61 61 64 33 2d 36 32 36 62 66 38 36 |ab6-aad3-626bf86|
+|000001c0| 34 62 62 62 33 3b 20 55 4d 5f 64 69 73 74 69 6e |4bbb3; UM_distin|
+|000001d0| 63 74 69 64 3d 31 37 61 61 65 35 65 65 63 33 34 |ctid=17aae5eec34|
+|000001e0| 35 31 30 2d 30 39 39 37 35 66 34 36 64 62 65 63 |510-09975f46dbec|
+|000001f0| 33 38 38 2d 34 63 33 65 32 35 37 61 2d 31 34 34 |388-4c3e257a-144|
+|00000200| 30 30 30 2d 31 37 61 61 65 35 65 65 63 33 36 33 |000-17aae5eec363|
+|00000210| 61 62 3b 20 43 4e 5a 5a 44 41 54 41 31 32 35 38 |ab; CNZZDATA1258|
+|00000220| 35 36 36 39 36 33 3d 31 36 31 32 35 36 38 34 34 |566963=161256844|
+|00000230| 38 2d 31 36 32 36 34 32 32 37 30 36 2d 25 37 43 |8-1626422706-%7C|
+|00000240| 31 36 32 36 34 32 38 31 35 30 0d 0a 53 65 63 2d |1626428150..Sec-|
+|00000250| 46 65 74 63 68 2d 44 65 73 74 3a 20 69 6d 61 67 |Fetch-Dest: imag|
+|00000260| 65 0d 0a 53 65 63 2d 46 65 74 63 68 2d 4d 6f 64 |e..Sec-Fetch-Mod|
+|00000270| 65 3a 20 6e 6f 2d 63 6f 72 73 0d 0a 53 65 63 2d |e: no-cors..Sec-|
+|00000280| 46 65 74 63 68 2d 53 69 74 65 3a 20 73 61 6d 65 |Fetch-Site: same|
+|00000290| 2d 6f 72 69 67 69 6e 0d 0a 43 61 63 68 65 2d 43 |-origin..Cache-C|
+|000002a0| 6f 6e 74 72 6f 6c 3a 20 6d 61 78 2d 61 67 65 3d |ontrol: max-age=|
+|000002b0| 30 0d 0a 0d 0a                                  |0....           |
++--------+-------------------------------------------------+----------------+
+16:03:05.810 [nioEventLoopGroup-3-3] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x924b66ea, L:/127.0.0.1:8080 - R:/127.0.0.1:52486] WRITE: 49B
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 48 54 54 50 2f 31 2e 31 20 32 30 30 20 4f 4b 0d |HTTP/1.1 200 OK.|
+|00000010| 0a 63 6f 6e 74 65 6e 74 2d 6c 65 6e 67 74 68 3a |.content-length:|
+|00000020| 20 31 30 0d 0a 0d 0a 68 65 6c 6c 6f 20 32 30 32 | 10....hello 202|
+|00000030| 32                                              |2               |
++--------+-------------------------------------------------+----------------+
+16:03:05.810 [nioEventLoopGroup-3-3] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x924b66ea, L:/127.0.0.1:8080 - R:/127.0.0.1:52486] FLUSH
+16:03:05.810 [nioEventLoopGroup-3-3] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded inbound message DefaultHttpRequest(decodeResult: success, version: HTTP/1.1)
+GET /favicon.ico HTTP/1.1
+Host: localhost:8080
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:95.0) Gecko/20100101 Firefox/95.0
+Accept: image/avif,image/webp,*/*
+Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+Referer: http://localhost:8080/
+Cookie: Hm_lvt_b393d153aeb26b46e9431fabaf0f6190=1621905850; Idea-352c639f=127d1ae5-4417-4ab6-aad3-626bf864bbb3; UM_distinctid=17aae5eec34510-09975f46dbec388-4c3e257a-144000-17aae5eec363ab; CNZZDATA1258566963=1612568448-1626422706-%7C1626428150
+Sec-Fetch-Dest: image
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Site: same-origin
+```
+
+
+#### 群聊
 
 
