@@ -15469,8 +15469,403 @@ Process finished with exit code 0
 客户端于服务器约定一个最大长度，保证客户端每次发送的数据长度都不会大于该长度。若发送数据长度不足则需要补齐至该长度。
 服务器接收数据时，将接收到的数据按照约定的最大长度进行拆分，即使发送过程中产生了粘包，也可以通过定长解码器将数据正确地进行拆分。服务端需要用到**FixedLengthFrameDecoder**对数据进行定长解码
 
-##### 行解码器
+##### 行解码器(推荐)
 
 **对于其他解码器，我还是更喜欢行解码器。行解码器主要是靠分隔符\n来判断行进行解码，不过需要进行限制长度，以免服务器一直搜索\n造成卡死。**
+
+> 改造前的粘包代码
+
+**服务端：**
+
+```java
+      NioEventLoopGroup boss = new NioEventLoopGroup(1);
+      NioEventLoopGroup worker = new NioEventLoopGroup(6);
+      new ServerBootstrap()
+              .group(boss,worker)
+              .channel(NioServerSocketChannel.class)
+              .childHandler(new ChannelInitializer<NioSocketChannel>() {
+                  @Override
+                  protected void initChannel(NioSocketChannel ch) throws Exception {
+
+                      ch.pipeline().addLast(new LoggingHandler());
+
+                      ch.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+
+                          @Override
+                          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                              log.info("msg={}",msg);
+                              super.channelRead(ctx, msg);
+                          }
+                      });
+
+                  }
+              }).bind(8080);
+```
+
+**客户端：**
+
+```java
+     NioEventLoopGroup nioEventLoopGroup = new NioEventLoopGroup();
+      try{
+      new Bootstrap()
+              .group(nioEventLoopGroup)
+              .channel(NioSocketChannel.class)
+              .handler(new ChannelInitializer<Channel>() {
+                  @Override
+                  protected void initChannel(Channel ch) throws Exception {
+
+                      ch.pipeline().addLast(new LoggingHandler());
+
+                      ch.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+
+                          @Override
+                          public void channelActive(ChannelHandlerContext ctx) throws Exception {
+
+                              ByteBuf buffer = ctx.alloc().buffer(16);
+
+                              for(int i=0;i<10;i++){
+                                  buffer.retain();
+                                  buffer.writeBytes("hello world".getBytes("utf-8"));
+                                  ctx.channel().writeAndFlush(buffer);
+                              }
+
+                              ch.close();//关闭Channel
+                              ChannelFuture closeFuture = ch.closeFuture();
+                              closeFuture.addListener(new ChannelFutureListener() {
+                                  @Override
+                                  public void operationComplete(ChannelFuture future) throws Exception {
+                                      nioEventLoopGroup.shutdownGracefully();
+                                  }
+                              });
+                          }
+                      });
+                  }
+              }).connect("localhost",8080);
+      }catch (Exception e){
+          e.printStackTrace();
+      }
+```
+
+**结果：**
+
+```java
+13:37:15.286 [nioEventLoopGroup-3-3] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x36ce6c5f, L:/127.0.0.1:8080 - R:/127.0.0.1:64550] READ: 110B
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 65 6c 6c 6f 20 77 6f 72 6c 64 68 65 6c 6c 6f |hello worldhello|
+|00000010| 20 77 6f 72 6c 64 68 65 6c 6c 6f 20 77 6f 72 6c | worldhello worl|
+|00000020| 64 68 65 6c 6c 6f 20 77 6f 72 6c 64 68 65 6c 6c |dhello worldhell|
+|00000030| 6f 20 77 6f 72 6c 64 68 65 6c 6c 6f 20 77 6f 72 |o worldhello wor|
+|00000040| 6c 64 68 65 6c 6c 6f 20 77 6f 72 6c 64 68 65 6c |ldhello worldhel|
+|00000050| 6c 6f 20 77 6f 72 6c 64 68 65 6c 6c 6f 20 77 6f |lo worldhello wo|
+|00000060| 72 6c 64 68 65 6c 6c 6f 20 77 6f 72 6c 64       |rldhello world  |
++--------+-------------------------------------------------+----------------+
+```
+
+
+> 接收方使用行解码器改造后
+
+**服务端：**
+
+```java
+  private static final Logger log= LoggerFactory.getLogger(NettyServer.class);
+
+  public static void main(String[] args) {
+
+      NioEventLoopGroup boss = new NioEventLoopGroup(1);
+      NioEventLoopGroup worker = new NioEventLoopGroup(6);
+      new ServerBootstrap()
+              .group(boss,worker)
+              .channel(NioServerSocketChannel.class)
+              .childHandler(new ChannelInitializer<NioSocketChannel>() {
+                  @Override
+                  protected void initChannel(NioSocketChannel ch) throws Exception {
+
+                      ch.pipeline().addLast(new LineBasedFrameDecoder(1024));//配置行解码器
+                      
+                      ch.pipeline().addLast(new LoggingHandler());
+                      ch.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+
+                          @Override
+                          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                              log.info("msg={}",msg);
+                              super.channelRead(ctx, msg);
+                          }
+                      });
+
+                  }
+              }).bind(8080);
+```
+
+**客户端：**
+
+```java
+ //把消息加工成可以被行解码器识别的消息
+    private static String getMsg(String oldMsg){
+
+        oldMsg+='\n';
+        return oldMsg;
+    }
+
+  public static void main(String[] args) {
+
+      NioEventLoopGroup nioEventLoopGroup = new NioEventLoopGroup();
+      try{
+      new Bootstrap()
+              .group(nioEventLoopGroup)
+              .channel(NioSocketChannel.class)
+              .handler(new ChannelInitializer<Channel>() {
+                  @Override
+                  protected void initChannel(Channel ch) throws Exception {
+
+                      ch.pipeline().addLast(new LoggingHandler());
+
+                      ch.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+
+                          @Override
+                          public void channelActive(ChannelHandlerContext ctx) throws Exception {
+
+                              ByteBuf buffer = ctx.alloc().buffer(16);
+
+                              for(int i=0;i<10;i++){
+                                  buffer.retain();
+                                  String msg = getMsg("hello world");
+                                  buffer.writeBytes(msg.getBytes("utf-8"));
+                                  ctx.channel().writeAndFlush(buffer);
+                                  //清理缓存,防止数据堆叠
+                                  buffer.clear();
+                              }
+
+                              ch.close();//关闭Channel
+                              ChannelFuture closeFuture = ch.closeFuture();
+                              closeFuture.addListener(new ChannelFutureListener() {
+                                  @Override
+                                  public void operationComplete(ChannelFuture future) throws Exception {
+                                      nioEventLoopGroup.shutdownGracefully();
+                                  }
+                              });
+                          }
+                      });
+                  }
+              }).connect("localhost",8080);
+      }catch (Exception e){
+          e.printStackTrace();
+      }
+
+  }
+```
+
+**输出结果：**
+
+```java
+13:47:15.199 [nioEventLoopGroup-3-4] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835] REGISTERED
+13:47:15.199 [nioEventLoopGroup-3-4] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835] ACTIVE
+13:47:15.224 [nioEventLoopGroup-3-4] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835] READ: 11B
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 65 6c 6c 6f 20 77 6f 72 6c 64                |hello world     |
++--------+-------------------------------------------------+----------------+
+13:47:15.224 [nioEventLoopGroup-3-4] INFO com.netty.netty.high.demo3.NettyServer - msg=PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 12, widx: 12, cap: 2048))
+13:47:15.224 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded inbound message PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 12, widx: 12, cap: 2048)) that reached at the tail of the pipeline. Please check your pipeline configuration.
+13:47:15.224 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded message pipeline : [LineBasedFrameDecoder#0, LoggingHandler#0, NettyServer$1$1#0, DefaultChannelPipeline$TailContext#0]. Channel : [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835].
+13:47:15.224 [nioEventLoopGroup-3-4] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835] READ COMPLETE
+13:47:15.224 [nioEventLoopGroup-3-4] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835] READ: 11B
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 65 6c 6c 6f 20 77 6f 72 6c 64                |hello world     |
++--------+-------------------------------------------------+----------------+
+13:47:15.224 [nioEventLoopGroup-3-4] INFO com.netty.netty.high.demo3.NettyServer - msg=PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 12, widx: 24, cap: 2048))
+13:47:15.224 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded inbound message PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 12, widx: 24, cap: 2048)) that reached at the tail of the pipeline. Please check your pipeline configuration.
+13:47:15.224 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded message pipeline : [LineBasedFrameDecoder#0, LoggingHandler#0, NettyServer$1$1#0, DefaultChannelPipeline$TailContext#0]. Channel : [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835].
+13:47:15.224 [nioEventLoopGroup-3-4] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835] READ: 11B
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 65 6c 6c 6f 20 77 6f 72 6c 64                |hello world     |
++--------+-------------------------------------------------+----------------+
+13:47:15.224 [nioEventLoopGroup-3-4] INFO com.netty.netty.high.demo3.NettyServer - msg=PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 24, widx: 24, cap: 2048))
+13:47:15.224 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded inbound message PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 24, widx: 24, cap: 2048)) that reached at the tail of the pipeline. Please check your pipeline configuration.
+13:47:15.224 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded message pipeline : [LineBasedFrameDecoder#0, LoggingHandler#0, NettyServer$1$1#0, DefaultChannelPipeline$TailContext#0]. Channel : [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835].
+13:47:15.224 [nioEventLoopGroup-3-4] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835] READ COMPLETE
+13:47:15.224 [nioEventLoopGroup-3-4] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835] READ: 11B
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 65 6c 6c 6f 20 77 6f 72 6c 64                |hello world     |
++--------+-------------------------------------------------+----------------+
+13:47:15.225 [nioEventLoopGroup-3-4] INFO com.netty.netty.high.demo3.NettyServer - msg=PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 12, widx: 24, cap: 1024))
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded inbound message PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 12, widx: 24, cap: 1024)) that reached at the tail of the pipeline. Please check your pipeline configuration.
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded message pipeline : [LineBasedFrameDecoder#0, LoggingHandler#0, NettyServer$1$1#0, DefaultChannelPipeline$TailContext#0]. Channel : [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835].
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835] READ: 11B
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 65 6c 6c 6f 20 77 6f 72 6c 64                |hello world     |
++--------+-------------------------------------------------+----------------+
+13:47:15.225 [nioEventLoopGroup-3-4] INFO com.netty.netty.high.demo3.NettyServer - msg=PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 24, widx: 24, cap: 1024))
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded inbound message PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 24, widx: 24, cap: 1024)) that reached at the tail of the pipeline. Please check your pipeline configuration.
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded message pipeline : [LineBasedFrameDecoder#0, LoggingHandler#0, NettyServer$1$1#0, DefaultChannelPipeline$TailContext#0]. Channel : [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835].
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835] READ COMPLETE
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835] READ: 11B
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 65 6c 6c 6f 20 77 6f 72 6c 64                |hello world     |
++--------+-------------------------------------------------+----------------+
+13:47:15.225 [nioEventLoopGroup-3-4] INFO com.netty.netty.high.demo3.NettyServer - msg=PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 12, widx: 36, cap: 1024))
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded inbound message PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 12, widx: 36, cap: 1024)) that reached at the tail of the pipeline. Please check your pipeline configuration.
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded message pipeline : [LineBasedFrameDecoder#0, LoggingHandler#0, NettyServer$1$1#0, DefaultChannelPipeline$TailContext#0]. Channel : [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835].
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835] READ: 11B
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 65 6c 6c 6f 20 77 6f 72 6c 64                |hello world     |
++--------+-------------------------------------------------+----------------+
+13:47:15.225 [nioEventLoopGroup-3-4] INFO com.netty.netty.high.demo3.NettyServer - msg=PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 24, widx: 36, cap: 1024))
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded inbound message PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 24, widx: 36, cap: 1024)) that reached at the tail of the pipeline. Please check your pipeline configuration.
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded message pipeline : [LineBasedFrameDecoder#0, LoggingHandler#0, NettyServer$1$1#0, DefaultChannelPipeline$TailContext#0]. Channel : [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835].
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835] READ: 11B
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 65 6c 6c 6f 20 77 6f 72 6c 64                |hello world     |
++--------+-------------------------------------------------+----------------+
+13:47:15.225 [nioEventLoopGroup-3-4] INFO com.netty.netty.high.demo3.NettyServer - msg=PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 36, widx: 36, cap: 1024))
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded inbound message PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 36, widx: 36, cap: 1024)) that reached at the tail of the pipeline. Please check your pipeline configuration.
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded message pipeline : [LineBasedFrameDecoder#0, LoggingHandler#0, NettyServer$1$1#0, DefaultChannelPipeline$TailContext#0]. Channel : [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835].
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835] READ COMPLETE
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835] READ: 11B
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 65 6c 6c 6f 20 77 6f 72 6c 64                |hello world     |
++--------+-------------------------------------------------+----------------+
+13:47:15.225 [nioEventLoopGroup-3-4] INFO com.netty.netty.high.demo3.NettyServer - msg=PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 12, widx: 24, cap: 512))
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded inbound message PooledSlicedByteBuf(ridx: 0, widx: 11, cap: 11/11, unwrapped: PooledUnsafeDirectByteBuf(ridx: 12, widx: 24, cap: 512)) that reached at the tail of the pipeline. Please check your pipeline configuration.
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.channel.DefaultChannelPipeline - Discarded message pipeline : [LineBasedFrameDecoder#0, LoggingHandler#0, NettyServer$1$1#0, DefaultChannelPipeline$TailContext#0]. Channel : [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835].
+13:47:15.225 [nioEventLoopGroup-3-4] DEBUG io.netty.handler.logging.LoggingHandler - [id: 0x2596d7b1, L:/127.0.0.1:8080 - R:/127.0.0.1:64835] READ: 11B
+         +-------------------------------------------------+
+         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |
++--------+-------------------------------------------------+----------------+
+|00000000| 68 65 6c 6c 6f 20 77 6f 72 6c 64                |hello world     |
++--------+-------------------------------------------------+----------------+
+```
+
+**可以看出已经解决了粘包问题。**
+
+##### 自定义分隔符解码器
+
+**核心类DelimiterBasedFrameDecoder**
+```java
+    /**
+     * Creates a new instance.
+     *
+     * @param maxFrameLength  the maximum length of the decoded frame.
+     *                        A {@link TooLongFrameException} is thrown if
+     *                        the length of the frame exceeds this value.
+     * @param delimiter  the delimiter
+     */
+    public DelimiterBasedFrameDecoder(int maxFrameLength, ByteBuf delimiter) {
+        this(maxFrameLength, true, delimiter);
+    }
+```
+
+**服务端：**
+
+```java
+  private static final Logger log= LoggerFactory.getLogger(NettyServer.class);
+
+  public static void main(String[] args) {
+
+      NioEventLoopGroup boss = new NioEventLoopGroup(1);
+      NioEventLoopGroup worker = new NioEventLoopGroup(6);
+      new ServerBootstrap()
+              .group(boss,worker)
+              .channel(NioServerSocketChannel.class)
+              .childHandler(new ChannelInitializer<NioSocketChannel>() {
+                  @Override
+                  protected void initChannel(NioSocketChannel ch) throws Exception {
+
+                      ByteBuf delimiter = ch.alloc().buffer(6);
+                      delimiter.writeBytes("\r".getBytes("utf-8")); //自定义分隔符
+                      ch.pipeline().addLast(new DelimiterBasedFrameDecoder(1024,delimiter));
+
+                      ch.pipeline().addLast(new LoggingHandler());
+                      ch.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+
+                          @Override
+                          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                              log.info("msg={}",msg);
+                              super.channelRead(ctx, msg);
+                          }
+                      });
+
+                  }
+              }).bind(8080);
+  }
+```
+
+**客户端：**
+
+```java
+ //把消息加工成可以被行解码器识别的消息
+    private static String getMsg(String oldMsg){
+
+        oldMsg+='\r';
+        return oldMsg;
+    }
+
+  public static void main(String[] args) {
+
+      NioEventLoopGroup nioEventLoopGroup = new NioEventLoopGroup();
+      try{
+      new Bootstrap()
+              .group(nioEventLoopGroup)
+              .channel(NioSocketChannel.class)
+              .handler(new ChannelInitializer<Channel>() {
+                  @Override
+                  protected void initChannel(Channel ch) throws Exception {
+
+                      ch.pipeline().addLast(new LoggingHandler());
+
+                      ch.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+
+                          @Override
+                          public void channelActive(ChannelHandlerContext ctx) throws Exception {
+
+                              ByteBuf buffer = ctx.alloc().buffer(16);
+
+                              for(int i=0;i<10;i++){
+                                  buffer.retain();
+                                  String msg = getMsg("hello world");
+                                  buffer.writeBytes(msg.getBytes("utf-8"));
+                                  ctx.channel().writeAndFlush(buffer);
+                                  //清理缓存,防止数据堆叠
+                                  buffer.clear();
+                              }
+
+                              ch.close();//关闭Channel
+                              ChannelFuture closeFuture = ch.closeFuture();
+                              closeFuture.addListener(new ChannelFutureListener() {
+                                  @Override
+                                  public void operationComplete(ChannelFuture future) throws Exception {
+                                      nioEventLoopGroup.shutdownGracefully();
+                                  }
+                              });
+                          }
+                      });
+                  }
+              }).connect("localhost",8080);
+      }catch (Exception e){
+          e.printStackTrace();
+      }
+
+  }
+```
+
+
 
 
