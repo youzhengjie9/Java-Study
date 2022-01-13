@@ -16239,3 +16239,368 @@ Sec-Fetch-Site: same-origin
 #### 群聊
 
 
+**服务端：**
+
+```java
+private static final Logger log= LoggerFactory.getLogger(NettyServer.class);
+
+   //维护所有channel，key=名称，value为channel对象
+    private static Map<String, NioSocketChannel> sessions=new ConcurrentHashMap<>();
+
+    public static Map<String, NioSocketChannel> getSessions() {
+        return sessions;
+    }
+    public static void putSession(String name,NioSocketChannel channel){
+
+        sessions.put(name,channel);
+
+    }
+
+    public static void removeSession(String name){
+
+        sessions.remove(name);
+    }
+
+  public static void main(String[] args) {
+
+      NioEventLoopGroup boss = new NioEventLoopGroup(1);
+      NioEventLoopGroup worker = new NioEventLoopGroup(6);
+      new ServerBootstrap()
+              .group(boss,worker)
+              .channel(NioServerSocketChannel.class)
+              .childHandler(new ChannelInitializer<NioSocketChannel>() {
+                  @Override
+                  protected void initChannel(NioSocketChannel ch) throws Exception {
+
+//                      ch.pipeline().addLast(new LineBasedFrameDecoder(1024));//配置行解码器
+
+                      ch.pipeline().addLast(new LoggingHandler());
+                      ch.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+
+                          @Override
+                          public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+
+                              super.exceptionCaught(ctx, cause);
+                          }
+                          //读消息
+                          @Override
+                          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+
+                              ByteBuf byteBuf=(ByteBuf)msg;
+                              byte b[]=new byte[byteBuf.readableBytes()];
+                              byteBuf.readBytes(b);
+                              String str=new String(b,"utf8");
+                              JSONObject jsonObject = JSONObject.parseObject(str);
+                              int state = (int) jsonObject.get("state");
+                              String username = (String) jsonObject.get("username");
+                              switch (state)
+                                  {
+                                      case 0: //上线
+                                          NettyServer.putSession(username, ch);
+
+                                          if(username.equals("client4")){ //如果是client4用户登录则群发
+
+                                              sessions.forEach((k,v)->{
+
+                                                  ByteBuf buffer = ctx.alloc().buffer(16);
+                                                  try {
+                                                      buffer.writeBytes("群发hhhh".getBytes("utf8"));
+                                                      v.writeAndFlush(buffer);
+//                                                      buffer.clear();
+                                                  } catch (UnsupportedEncodingException e) {
+                                                      e.printStackTrace();
+                                                  }
+                                              });
+
+                                          }
+                                          System.out.println("当前在线人数："+NettyServer.getSessions().size());
+                                          break;
+                                      case 1: //下线
+                                          NettyServer.removeSession(username);
+                                          NettyServer.getSessions().forEach((k,v)->{
+                                              System.out.println(k);
+                                              System.out.println(v.hashCode());
+                                          });
+                                          System.out.println("当前在线人数："+NettyServer.getSessions().size());
+                                          break;
+                                      default:
+                                          break;
+                                  }
+
+
+                              super.channelRead(ctx, msg);
+                          }
+                      });
+
+                  }
+              }).bind(8080);
+
+
+
+  }
+```
+
+**客户端1：**
+
+```java
+public static void main(String[] args) {
+        String name="client1";
+      NioEventLoopGroup nioEventLoopGroup = new NioEventLoopGroup();
+      try{
+      new Bootstrap()
+              .group(nioEventLoopGroup)
+              .channel(NioSocketChannel.class)
+              .handler(new ChannelInitializer<Channel>() {
+                  @Override
+                  protected void initChannel(Channel ch) throws Exception {
+
+                      ch.pipeline().addLast(new LoggingHandler());
+
+                      ch.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+
+                          @Override
+                          public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                              User user = new User();
+                              user.setUsername(name);
+                              user.setState(0);
+                              String jsonString = JSON.toJSONString(user);
+                              ByteBuf buffer = ctx.alloc().buffer(16);
+                              buffer.writeBytes(jsonString.getBytes("utf8"));
+                              ch.writeAndFlush(buffer);
+                              super.channelActive(ctx);
+                          }
+
+                          @Override
+                          public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+                              User user = new User();
+                              user.setUsername(name);
+                              user.setState(1);
+                              String jsonString = JSON.toJSONString(user);
+                              ByteBuf buffer = ctx.alloc().buffer(16);
+                              buffer.writeBytes(jsonString.getBytes("utf8"));
+                              ch.writeAndFlush(buffer);
+                              super.channelInactive(ctx);
+                          }
+
+                          @Override
+                          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                              System.out.println(msg);
+                              super.channelRead(ctx, msg);
+                          }
+                      });
+                  }
+              }).connect("localhost",8080);
+      }catch (Exception e){
+          e.printStackTrace();
+      }
+
+  }
+```
+
+**客户端2：**
+
+```java
+ public static void main(String[] args) {
+        String name="client2";
+      NioEventLoopGroup nioEventLoopGroup = new NioEventLoopGroup();
+      try{
+      new Bootstrap()
+              .group(nioEventLoopGroup)
+              .channel(NioSocketChannel.class)
+              .handler(new ChannelInitializer<Channel>() {
+                  @Override
+                  protected void initChannel(Channel ch) throws Exception {
+
+                      ch.pipeline().addLast(new LoggingHandler());
+
+                      ch.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+
+                          @Override
+                          public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                              User user = new User();
+                              user.setUsername(name);
+                              user.setState(0);
+                              String jsonString = JSON.toJSONString(user);
+                              ByteBuf buffer = ctx.alloc().buffer(16);
+                              buffer.writeBytes(jsonString.getBytes("utf8"));
+                              ch.writeAndFlush(buffer);
+                              super.channelActive(ctx);
+                          }
+
+                          @Override
+                          public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+                              User user = new User();
+                              user.setUsername(name);
+                              user.setState(1);
+                              String jsonString = JSON.toJSONString(user);
+                              ByteBuf buffer = ctx.alloc().buffer(16);
+                              buffer.writeBytes(jsonString.getBytes("utf8"));
+                              ch.writeAndFlush(buffer);
+                              super.channelInactive(ctx);
+                          }
+
+                          @Override
+                          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                              System.out.println(msg);
+                              super.channelRead(ctx, msg);
+                          }
+                      });
+                  }
+              }).connect("localhost",8080);
+      }catch (Exception e){
+          e.printStackTrace();
+      }
+
+  }
+```
+
+**客户端3：**
+
+```java
+ public static void main(String[] args) {
+        String name="client3";
+      NioEventLoopGroup nioEventLoopGroup = new NioEventLoopGroup();
+      try{
+      new Bootstrap()
+              .group(nioEventLoopGroup)
+              .channel(NioSocketChannel.class)
+              .handler(new ChannelInitializer<Channel>() {
+                  @Override
+                  protected void initChannel(Channel ch) throws Exception {
+
+                      ch.pipeline().addLast(new LoggingHandler());
+
+                      ch.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+
+                          @Override
+                          public void channelActive(ChannelHandlerContext ctx) throws Exception {
+
+                              User user = new User();
+                              user.setUsername(name);
+                              user.setState(0);
+                              String jsonString = JSON.toJSONString(user);
+                              ByteBuf buffer = ctx.alloc().buffer(16);
+                              buffer.writeBytes(jsonString.getBytes("utf8"));
+                              ch.writeAndFlush(buffer);
+                              super.channelActive(ctx);
+                          }
+
+                          @Override
+                          public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+                              User user = new User();
+                              user.setUsername(name);
+                              user.setState(1);
+                              String jsonString = JSON.toJSONString(user);
+                              ByteBuf buffer = ctx.alloc().buffer(16);
+                              buffer.writeBytes(jsonString.getBytes("utf8"));
+                              ch.writeAndFlush(buffer);
+                              super.channelInactive(ctx);
+                          }
+
+                          @Override
+                          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                              System.out.println(msg);
+                              super.channelRead(ctx, msg);
+                          }
+                      });
+                  }
+              }).connect("localhost",8080);
+      }catch (Exception e){
+          e.printStackTrace();
+      }
+
+  }
+```
+
+**客户端4：**
+
+```java
+public static void main(String[] args) {
+        String name="client4";
+      NioEventLoopGroup nioEventLoopGroup = new NioEventLoopGroup();
+      try{
+      new Bootstrap()
+              .group(nioEventLoopGroup)
+              .channel(NioSocketChannel.class)
+              .handler(new ChannelInitializer<Channel>() {
+                  @Override
+                  protected void initChannel(Channel ch) throws Exception {
+
+                      ch.pipeline().addLast(new LoggingHandler());
+
+                      ch.pipeline().addLast(new ChannelInboundHandlerAdapter(){
+
+                          @Override
+                          public void channelActive(ChannelHandlerContext ctx) throws Exception {
+
+
+                              User user = new User();
+                              user.setUsername(name);
+                              user.setState(0);
+                              String jsonString = JSON.toJSONString(user);
+                              ByteBuf buffer = ctx.alloc().buffer(16);
+                              buffer.writeBytes(jsonString.getBytes("utf8"));
+                              ch.writeAndFlush(buffer);
+                              super.channelActive(ctx);
+                          }
+
+                          @Override
+                          public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+                              User user = new User();
+                              user.setUsername(name);
+                              user.setState(1);
+                              String jsonString = JSON.toJSONString(user);
+                              ByteBuf buffer = ctx.alloc().buffer(16);
+                              buffer.writeBytes(jsonString.getBytes("utf8"));
+                              ch.writeAndFlush(buffer);
+                              super.channelInactive(ctx);
+                          }
+
+                          @Override
+                          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+                              System.out.println(msg);
+                              super.channelRead(ctx, msg);
+                          }
+                      });
+                  }
+              }).connect("localhost",8080);
+      }catch (Exception e){
+          e.printStackTrace();
+      }
+
+  }
+```
+
+**实体类：**
+
+```java
+public class User implements Serializable {
+
+    private String username;
+    private int state; //用户状态，0在线，1下线
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public int getState() {
+        return state;
+    }
+
+    public void setState(int state) {
+        this.state = state;
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "username='" + username + '\'' +
+                ", state=" + state +
+                '}';
+    }
+}
+```
