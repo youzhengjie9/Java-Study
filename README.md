@@ -16604,3 +16604,102 @@ public class User implements Serializable {
     }
 }
 ```
+
+## JVM
+
+
+
+
+
+## Vue框架
+
+### Vue-cli
+
+> 安装nodejs
+
+```text
+cmd检查本机是否有nodejs：node -v
+如果没有就下载：
+下载网址：http://nodejs.cn/download/
+```
+
+> 安装npm
+
+```text
+cmd下输入npm -v，查看是否能够正确打印出版本号即可！
+如果没有安装则：npm install
+```
+> 安装git
+
+```text
+Git：https://git-scm.com/doenloads
+镜像：https://npm.taobao.org/mirrors/git-for-windows/
+```
+
+> 安装cnpm
+
+```text
+# -g 就是全局安装
+npm install cnpm -g
+
+# 或使用如下语句解决npm速度慢的问题
+npm install --registry=https://registry.npm.taobao.org
+```
+
+> 安装webpack
+
+```text
+npm install webpack -g  或者 npm install -g webpack
+
+检查webpack是否安装成功
+webpack -v
+```
+
+> 安装vue-cli
+
+```text
+全局安装：
+npm install --global vue-cli
+
+检查是否安装成功
+vue -V
+vue list
+```
+
+#### 第一个Vue-cli
+
+```text
+1：随便创建一个文件夹：D:\vue\vue-demo1
+2：进入这个文件夹：cd D:\vue\vue-demo1
+3: 初始化：vue init webpack 自己起一个vue项目名，例如：vue init webpack myvue1
+4：初始化的过程中一路都选择*no*即可
+```
+
+**安装vue-cli过程说明：**
+* Project name：项目名称，默认**回车**即可
+* Project description：项目描述，默认**回车**即可
+* Author：项目作者，默认**回车**即可
+* Install vue-router：是否安装vue-router路由，选择**n**不安装（**后期需要再手动添加**）
+* Use ESLint to lint your code:是否使用ESLint做代码检查，选择**n**不安装（**后期需要再手动添加**)
+* Set up unit tests:单元测试相关，选择**n**不安装（**后期需要再手动添加**）
+* Setupe2etests with Nightwatch：单元测试相关，选择**n**不安装（**后期需要再手动添加**）
+* Should we run npm install for you after the,project has been created:创建完成后直接初始化，选择**n**，我们手动执行；运行结果！
+
+**然后就会生成一个标准的Vue项目：**
+![vue1.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/vue1.png)
+
+
+**运行刚刚生成的Vue项目：**
+
+```text
+1：cd vue项目名 ，例如：cd myvue1
+2：npm run dev 运行
+```
+
+![vue2.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/vue2.png)
+
+**访问生成的地址：**
+
+![vue3.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/vue3.png)
+
+**这就是我们的第一个Vue-cli程序了。**
