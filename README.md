@@ -10359,6 +10359,262 @@ http://www.springframework.org/schema/context/spring-context.xsd
 
 
 
+### Spring AOP
+
+**AOP的很多操作都要结合IOC进行**
+
+AOP是面向切面编程,比如我们要在一个计算器方法中增加一个日志功能:
+
+* 如果我们是用面向对象的话，我们就直接在计算器方法中直接添加代码。
+* 如果我们是用面向切面的话，我们就可以先把这个方法抽取出来，再进行更改
+
+> 切面
+
+其实就是**公共功能的‘类’**，“一个切面包含了一个至多个的通知”，例如上面例子的日志功能就是公共功能，我们把这个各个公共功能叫做’横切关注点‘，把这些横切关注点抽取到一个‘类’中这个类就是切面。。，切面的好处就是：‘不必修改源代码，就可以对这个方法进行增强或者更改，还有就是便于维护，业务模块更加简洁。。’
+
+
+#### Aop使用场景
+
+**如果在不修改源代码的情况下，我们要对某个已存在的方式进行增强，我们可以用AOP**
+
+> AOP底层原理
+
+**使用的是动态代理（Proxy）**
+
+* 如果要增强的方法有接口（**实现了接口**）的话，就使用这个**JDK动态代理**  ====import java.lang.reflect.Proxy;
+* 如果要增强的方法**没有接口**的话，就使用**CGLIB动态代理**
+
+
+#### JDK动态代理
+
+* 创建接口的‘’实现类‘’的代理对象
+* 通过这个代理对象去对实现类方法的增强，或者是一些改变
+
+> 需要被增加的实现类
+
+```java
+import java.lang.reflect.Proxy;
+
+public interface UserDao {
+
+    int add(int i,int j);
+
+}
+public class UserImpl implements UserDao {
+    /**
+     *如果要该类的add方法进行改动，而不修改这里的源代码，我们可以用动态代理
+     * 又因为这个类实现了接口，我们可以用JDK动态代理
+     * 反之 CGLIB动态代理
+     *
+     *
+     */
+
+    @Override
+    public int add(int i, int j) {
+        return i+j;
+    }
+
+}
+```
+
+> 代理类
+
+```java
+public static void main(String[] args) throws ClassNotFoundException {
+        UserImpl impl=new UserImpl();//创建目标类的对象，以供method.invoke()方法使用
+        Class<?> cla = Class.forName("AOP底层实现.UserImpl");//用反射去获取要增强的类的所有信息
+        UserDao user=(UserDao) Proxy.newProxyInstance(cla.getClassLoader(), cla.getInterfaces(), new InvocationHandler() {
+            @Override
+            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                /**
+                 * 这个类的方法是创建代理对象，对方法进行增强
+                 */
+                //******获取调用的方法,第一个参数是目标类的对象，第二个是args参数数组
+                System.out.println("创建代理对象");
+                Object result = method.invoke(impl, args);
+                System.out.println("method.invoke调用了返回了结果="+result);//method.invoke就是控制 方法的执行
+                return result;//返回结果
+            }
+        });
+        int res = user.add(2, 3);
+        System.out.println(res);
+
+
+    }
+```
+
+#### CGLIB动态代理过程
+
+* 创建这个类的子类的代理对象
+* 通过这个子类的代理对象去对父类的方法进行增强
+
+
+#### AOP术语
+
+> 横切关注点
+
+抽取出来的公共功能
+
+> 切面
+
+存储一个至多个通知的类
+
+> 通知
+
+横切关注点存储到切面的类，就变成了通知，和横切关注点的区别，只是在不同的位置，叫法不一样罢了
+
+* 5种通知类型
+  * 前置通知 :方法执行之前执行的代码  ===@Before
+  * 后置通知：方法执行之后执行的代码 ===@After
+  * 返回通知：===@AfterReturning
+  * 异常通知：其实就是当方法出现异常时才会调用的方法===@AfterThrowing
+  * 环绕通知
+
+> 目标
+
+被通知的对象，也就是通知所作用的对象，目标被切面作用
+
+> 代理
+
+向目标对象通知之后创建的代理对象
+
+> 连接点
+
+其实就是Spring允许你使用通知的地方，或者说和方法有关的前前后后（包括抛出异常）都是连接点
+
+> 切入点
+
+切入点就是作用的连接点的条件   ，切面作用的点，一定要有切入点，不然切面不知道作用在哪里（切入点其实就是指定“切面要作用哪个方法，也就是切入点表达式    execution(xxx)”）
+
+> 切面类
+
+```java
+@Component
+@Aspect//切面的注解，说明这个类是切面
+public class myLogAspect {
+    /**
+     *一个切面用来存储非业务逻辑、公共功能
+     */
+    //切入点表达式的格式：execution([可见性]返回类型[声明类型].包名.类名.方法名(参数)[异常])
+
+/*
+@Before:将方法标注为前置通知
+*/
+=====
+    @Before(value = "execution(public int cglib动态代理.UserImpl.add(int ,int))")//前置通知注解,括号要有切入点表达式(也就是execution(访问修饰符,返回值类型,实现类的方法全名))
+    public void beforeLog(){//前置'通知'
+        System.out.println("方法执行之前===前置通知");
+    }
+
+=======
+/**
+ @After:将方法标注为后置通知
+    作用于finally语句，即不管怎么样，有没有异常，这个方法都会执行
+*/
+    @After(value = "execution(public int cglib动态代理.UserImpl.add(int,int))")
+    public void afterLog(){//后置'通知'
+        System.out.println("方法执行之后===后置通知");
+    }
+
+}
+======
+/**
+     * @AfterReturning：标注这个方法是返回通知
+     * 作用是可以获取到返回值
+     * @AfterReturning(execution(xxx),returning="yyy")
+     * execution(xxx):和前置通知，后置通知是”一样”的写法
+     * returning="yyy":是接受返回值，并将获取到的返回值赋值到yyy这个变量中
+     * 此时我们必须在形参李定义一个Object yyy,用于接收returning="yyy"的值
+     */
+       @AfterReturning(value = "execution(*  aspectj.*.*(..))",returning = "res")
+    public void Returning(JoinPoint joinPoint,Object res){
+           System.out.println("方法"+joinPoint.getSignature().getName()+"返回通知"+"result="+res);
+    }
+======
+/**
+     * @AfterThrowing:就是标注一个方法为异常通知，当这个方法出现Exception时才会执行，否则不执行
+     * throwing：用来获取异常信息，这点和返回通知的returning相似，都是用来获取信息，传递到
+     * 方法形参中
+     */
+    @AfterThrowing(value = "execution(* aspectj.UserImpl.*(..))",throwing = "ex")
+    public void throwing(Exception ex){
+        System.out.println("有异常了,异常类型="+ex);
+    }
+```
+
+#### 获取方法信息
+
+加入一个JoinPoint接口作为形参，通过这个JoinPoint接口的‘对象’可以获取到这个方法的信息
+
+> JoinPoint
+
+```java
+java.lang.Object[] getArgs()：获取连接点方法运行时的参数列表；
+Signature getSignature()：获取连接点的方法签名对象；
+方法签名对象.getName()  可以得到方法名
+
+
+java.lang.Object getTarget()：获取连接点所在的目标对象；
+java.lang.Object getThis()：获取代理对象本身；
+```
+
+> JoinPoint使用
+
+```java
+@Before(value = "execution(public int aspectj.UserImpl.add(int ,int))")//前置通知注解,括号要有切入点表达式(也就是execution(访问修饰符,返回值类型,实现类的方法全名))
+
+    public void beforeLog(JoinPoint joinPoint){//前置'通知'
+        Object[] args = joinPoint.getArgs();
+        Signature signature = joinPoint.getSignature();
+//        System.out.println(signature.getName());//通过方法签名得到方法名字
+        System.out.println(Arrays.toString(args));
+        System.out.println(signature.getName()+"方法执行之前===前置通知");
+    }
+```
+
+#### 切入点表达式的改进
+
+
+```text
+@Before(value = "execution(* aspectj.UserImpl.*(..))")
+改进如下
+1.我们可以把public int 也就是访问修饰符和返回值类型===改成   *  号，
+这代表着不管是什么访问修饰符和返回值类型都能被作用到
+2.我们可以把方法名改成*号，和方法参数改成(..)，括号中间两个点。
+3.包名也可以改成*号，代表所有的意思
+=================================
+公共切入点：简化操作
+公共切入点需要的注解：@Pointcut   
+总结：@Pointcut的操作和@Before、@After一样
+==***************************
+定义一个******公共切入点*******：
+ /**
+     * 创建一个空方法，将这个方法加上====     @Pointcut注解   =====，其余写法和@Before、@After一样
+     * 意思是将这个方法'=====变成一个公共的切入点====='，方便去调用
+     *此时这个方法test()就变成了一个（切入点 ===  execution(* autoProxyTest.UserImpl.*(..)) ）
+     */
+    @Pointcut("execution(* autoProxyTest.UserImpl.*(..))")
+    public void test(){
+    }
+====此时这个test()就相当于execution(xxx),test()就是公共切入点，故调用操作如下：
+//    @Before("execution(* autoProxyTest.UserImpl.*(..))")
+    @Before("test()")//要加test()
+    public void before(JoinPoint joinPoint){
+        System.out.println("前置通知"+joinPoint.getSignature().getName()+"方法");
+    }
+====注意：不是test，而是test()
+ @AfterReturning(value = "test()",returning = "res")
+    public int returnRes(int res){
+        System.out.println("返回通知，返回res="+res);
+        return res;
+    }
+```
+
+#### @Order注解
+
+**这个@Order是对bean执行顺序进行优先级设置，而不是bean的加载顺序，加载顺序是不能改变的。@Order(数字)，数字越小，优先级越高，默认数字是Int的最大值**
+
+
 
 
 
