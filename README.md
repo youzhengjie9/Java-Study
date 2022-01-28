@@ -9837,6 +9837,531 @@ public static void main(String[] args) {
 
 
 
+## Spring(部分)
+
+**Spring由两大部分组成，IOC和AOP。**
+
+### SpringIOC
+
+Spring IOC是通过**工厂模式**实现的
+
+#### Bean
+
+当我们在xml文件**创建每一个bean**的时候，当**容器被初始化**的时候，Spring就会通过这个**bean的所属类**通过这个类的**无參构造方法**创建这个类的对象
+
+##### Bean注入方式
+
+> 1：Set注入，也就是用property（最常用）
+
+* 首先要该属性的**public的Set/get方法**才能注入成功
+
+```xml
+<bean id="Setzhuru" class="zhuru.zhuru"  scope="singleton">
+       <property name="id" value="11111"></property>
+       <property name="name" value="Set注入成功"></property>
+</bean>
+```
+
+> 2：构造方法注入（constructor -arg）
+
+* 首先要**有构造方法才能注入**
+
+```java
+public zhuru(int id,String name){
+        this.id=id;
+        this.name=name;
+}
+```
+
+```xml
+<bean id="gouzao" class="zhuru.zhuru">
+          <constructor-arg value="22222"></constructor-arg>
+         <constructor-arg value="构造方法注入成功"></constructor-arg>
+</bean>
+```
+
+**两个constructor -arg代表构造方法为两个参数，如果在写多一个,constructor -arg就会报错，因为没有创建三个参数的构造方法**
+
+
+##### p命名空间
+
+**p命名空间 property的缩写：首先我们要在idea的xml文件上用xmlns:p="http://www.springframework.org/schema/p"写在命名空间上，才能使用p命名空间**
+
+例如：
+
+```xml
+<bean id="Pname" class="zhuru.zhuru" p:id="33333" p:name="P命名空间注入了"  >
+</bean>
+```
+
+##### 字面量和ref
+
+* 字面量
+  * 不能用ref去引用的，可以直接用value去赋值（注入）的属性，比如说：int 、Integer、String、boolean、double、float。。等等。。。
+* 非字面量
+  * 比如：**数据类型是自己创建的类**的属性等等
+  * 只能用ref去引用，也就是一个引用的数据类型，不可以直接用
+  * value去赋值的一个属性，就是非字面量。。。
+
+例如：
+
+```java
+public class zhuru {
+    //注入
+    private int id;
+    private String name;
+    private zhuru_ref ref;//******这个就是非字面量
+｝
+public class zhuru_ref {
+
+
+    private int age;
+    private String address;
+｝
+```
+
+```xml
+<bean id="noref" class="zhuru.zhuru">
+        <property name="id" value="55555"></property>
+        <property name="name" value="id和name可以直接用value赋值，他们是字面量"></property>
+        <property name="ref" >
+            <ref bean="isref"></ref>
+        </property>
+
+</bean>
+<bean id="isref" class="zhuru.zhuru_ref">
+      <property name="age" value="18"></property>
+      <property name="address" value="字面量"></property>
+</bean>
+```
+
+##### 内部bean的使用场景
+
+```xml
+<bean id="noref" class="zhuru.zhuru">
+        <property name="id" value="55555"></property>
+        <property name="name" value="id和name可以直接用value赋值，他们是字面量"></property>
+        <property name="ref" >
+            <bean id="isref" class="zhuru.zhuru_ref">
+         这里就是内部bean*************
+                <property name="age" value="18"></property>
+                <property name="address" value="内部bean"></property>
+            </bean>
+             
+        </property>
+
+</bean>
+```
+
+
+##### 为集合属性赋值
+
+> 命名空间
+
+```text
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+>
+```
+
+
+> 需要赋值的类
+
+```java
+public class listzhuru1 {
+    private List<Integer> numbList=new ArrayList<>();//纯数据类型的赋值
+    private List<listzhuru2> list2=new ArrayList<>();//纯类的对象赋值
+｝
+
+public class listzhuru2 {
+    private int id;
+    private String name;
+｝
+```
+
+
+> 使用list标签
+
+```xml
+<bean id="list1" class="listzhuru.listzhuru1">
+         <property name="numbList">
+             <list>
+                 <value>111</value>
+                 <value>222</value>
+                 <value>333</value>
+             </list>
+         </property>
+
+    </bean>
+```
+
+
+> 使用util命名空间
+
+```xml
+<bean id="list1" class="listzhuru.listzhuru1">
+         <property name="numbList"  ref="utilList1">
+ 
+         </property>
+        
+
+
+    </bean>
+<!--      用util命名空间，再使用util:list标签为集合属性赋值-->
+       <util:list id="utilList1">
+           <value>555</value>
+
+       </util:list>
+```
+
+
+##### 为Map数据结构赋值
+
+```xml
+1. 方法一，就是直接通过在property标签里面加入<Map>标签注入：
+如下
+<bean id="map" class="Mapzhuru.Mapzhuru">
+        <property name="map">
+            <map>
+                <entry>
+                    <key>
+                        <value>张三</value>
+                    </key>
+                    <value>100</value>
+                </entry>
+
+
+                <entry>
+                    <key>
+                        <value>李四</value>
+
+                    </key>
+
+                    <value>200</value>
+                </entry>
+                
+            </map>
+方法二：使用util集合类型的bean为map赋值：
+
+<bean id="utilMap" class="Mapzhuru.Mapzhuru" scope="singleton">
+        <property name="map">
+            <ref bean="maps"></ref>
+        </property>
+
+    </bean>
+
+    <util:map id="maps">
+        <entry>
+            <key>
+                <value>utilMap赋值成功</value>
+            </key>
+            <value>99999</value>
+        </entry>
+
+    </util:map>
+```
+
+
+##### 集合类型的bean
+
+> 命令空间
+
+```xml
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+>
+```
+> 使用util集合类型的bean为map赋值
+
+```xml
+<bean id="utilMap" class="Mapzhuru.Mapzhuru" scope="singleton">
+        <property name="map">
+            <ref bean="maps"></ref>
+        </property>
+
+    </bean>
+
+    <util:map id="maps">
+        <entry>
+            <key>
+                <value>utilMap赋值成功</value>
+            </key>
+            <value>99999</value>
+        </entry>
+
+    </util:map>
+```
+
+
+#### FactoryBean
+
+**FactoryBean其实就是用了工厂模式，他把创建对象的过程隐藏起来，放在getObject里面**
+
+```java
+implements FactoryBean<泛型（也就是这个工厂要生产的对象）>
+
+@Override
+    public car getObject() throws Exception {
+//这一步，其实就是把创建对象的过程隐藏起来
+        car car=new car();
+        car.setId(111);
+        car.setName("宝马");
+        return car;
+    }
+
+    @Override
+    public Class<?> getObjectType() {
+        return car.class;
+    }
+
+```
+
+#### bean的作用域
+
+
+> 单例模式
+
+**scope="singleton"**
+此时当一个bean是singleton的，**当Spring容器初始化时候**，他就自动的通过这个bean的class的**无參构造**创建对象。
+
+```xml
+<bean id="single" class="scope.User" scope="singleton">
+
+    </bean>
+```
+
+> 多例模式
+
+**scope="prototype"**
+当一个bean是prototype的时候，当**Spring使用时才会创建这个bean的class的对象**，也是通过**无參构造**，但是不同之处是**多例模式是用到才创建对象**，**初始化容器不会创建任何对象**。
+
+```xml
+ <bean id="proto" class="scope.User" scope="prototype">
+
+    </bean>
+```
+
+#### bean的生命周期
+
+* 1:首先就是创建bean的对象(无參构造创建对象)
+* 2:对这个bean进行注入（set注入）
+* 3:将这个bean进行初始化（init-method）
+* 4:使用这个bean
+* 5:销毁这个bean（destroy-method）
+
+> 代码展示Bean的生命周期
+
+```java
+    public sm(){
+        System.out.println("1.bean创建对象成功");
+    }
+
+       public void setId(int id) {
+        System.out.println("2.bean注入id成功");
+
+        this.id = id;
+    }
+    public void init(){
+        System.out.println("3.bean已经被初始化完毕了");
+    }
+public String toString() {
+        System.out.println("4.使用bean");
+        return "";
+    }
+    public void destroy(){
+        System.out.println("5.bean被销毁了！！！");
+    }
+```
+
+**这时候‘销毁bean的方法不会生效’，因为只有在容器关闭之后才能销毁bean，这时我们要这样**
+
+> 销毁bean,close()方法
+
+```java
+ClassPathXmlApplicationContext ac=new ClassPathXmlApplicationContext("beansm.xml");
+        sm sm = ac.getBean("sm", sm.class);
+        System.out.println(sm);
+        ac.close();//只有调用了close方法才能销毁bean
+```
+
+
+#### bean的后置处理器BeanPostProcessor
+
+**个人理解：就是当这个xml文件配置了bean的后置处理器，当getbean()去使用bean对象的时候，他就会在这些数据进行处理，不使用他就不会发生作用**
+
+* 实现 BeanPostProcessor接口
+
+```java
+@Override
+    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+        car car=(car)bean;//说明他会找到car类型
+        if(car.getId()==12223){
+            car.setId(66666);
+        }
+        return car;
+    }
+
+    @Override
+    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        return bean;
+    }
+```
+
+> 注册后置处理器
+
+**其实就是把实现了BeanPostProcessor接口的类配置到bean里面去，这时bean会自动寻找符合条件的bean**
+
+```xml
+<bean class="bean_post.postTest"></bean>
+```
+
+#### 引用外部资源文件和使用Druid数据库连接池
+
+创建一个bean，引入PropertyPlaceholderConfigurer类，在里面property注入location，这个location的值就填写properties配置文件全名，xxx.properties
+
+> 引入外部资源文件
+
+```xml
+<bean id="pro" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+       <property name="location" value="db.properties"/>
+   </bean>
+```
+
+> 使用Druid数据库连接池
+
+**db.properties文件:**
+
+```properties
+driverClassName:com.mysql.jdbc.Driver
+
+userName:root
+
+password:18420163207
+
+url:jdbc:mysql://localhost:3306/xscj
+```
+
+```xml
+<bean id="db" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="driverClassName" value="${driverClassName}"></property>
+        <property name="url" value="${url}"></property>
+        <property name="username" value="${userName}"></property>
+        <property name="password" value="${password}"></property>
+    </bean>
+```
+
+> 使用Druid数据库连接池访问xscj数据库的xs表的使用
+
+```java
+ApplicationContext ac=new ClassPathXmlApplicationContext("database.xml");
+        DruidDataSource db = ac.getBean("db", DruidDataSource.class);
+        DruidPooledConnection conn = db.getConnection();
+        Statement stmt = conn.createStatement();
+        String sql="Select * from xs";
+        ResultSet res = stmt.executeQuery(sql);
+        while(res.next()){//判断res里面是否有下一行，有就打印
+            String s1 = res.getString(1);
+            String s2 = res.getString(2);
+            String s3 = res.getString(3);
+            int s4 = res.getInt(4);
+            Date s5 = res.getDate(5);
+            int s6 = res.getInt(6);
+            System.out.println(s1+"    "+s2+"    "+s3+"    "+s4+"    "+s5+"    "+s6);
+        }
+```
+
+
+#### 自动装配和兼容性
+
+在bean的定义后面加个autowire ，有两种类型：
+其实自动装配就是自动的为‘’非字面量‘’赋值，也就是可以通过ref去引用bean的属性，只有这些才能自动装配，字面量不可以，也就是可以直接通过value赋值的不可以autowire
+
+
+byName:其实就是把这个要赋值的非字面量属性的属性名和Spring所管理的bean的id相比较，相同就赋值。
+
+byType:
+
+#### 基于xml的自动装配和基于注解组件的扫描
+
+自动装配autowired注解为某个属性赋值
+
+```java
+@Autowired  
+  //  @Qualifier("carImpl1")   这个是指定bean的id   carImpl1是bean id
+    private carInteface cars;
+```
+
+> 注解组件的扫描
+
+先引入context的命名空间和网址
+
+```xml
+ xmlns:context="http://www.springframework.org/schema/context"
+
+http://www.springframework.org/schema/context
+http://www.springframework.org/schema/context/spring-context.xsd
+```
+
+**例如扫描AutoWire包下的注解组件:**
+
+```xml
+<context:component-scan base-package="AutoWire">
+
+     </context:component-scan>
+```
+
+> 常用组件注解类型
+
+```java
+@component("xxx")     普通注解组件
+@Repository ("xxx")     持久层注解组件
+@Service            业务逻辑层注解组件
+@Controller       控制层注解组件
+```
+
+**默认扫描到的bean名是类名首字母小写的类名**
+
+#### 扫描注解组件的包含和排除
+
+```xml
+<context:component-scan base-package="扫描的包名" use-default-filters="布尔值">
+    可以选填下面的筛选语句“”之一“”，注意千万不可以把下面两句都填，可选其一
+
+     </context:component-scan>
+
+<context:exclude-filter type="" expression=""/>
+*******重点：exclude就是‘’排除‘’，他必须要建立在所有包都被扫描过的情况下才行，不然会报错，=====也就是使用exclude之前要在use-default-filters设置为true=======
+
+
+
+ <context:include-filter type="" expression=""/>
+重点：include，也就是‘包含’，他要建立在没有扫描的情况下，不然没有作用，但是也不会exception，只是单纯的没作用，所以要让他有作用，就要把use-default-filters设置为false
+
+```
+
+**exclude和include不能同时用.**
+
+
+#### 基于注解的自动装配
+
+**@Autowired:**
+
+* @Autowired注解组件就会**优先使用byType**，如果byType无法为这个加了@Autowired注解的属性赋值，他就会**切换到byName**
+
+
+
+
+
+
+
 
 ## SpringBoot
 
