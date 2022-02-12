@@ -10615,10 +10615,6 @@ java.lang.Object getThis()：获取代理对象本身；
 **这个@Order是对bean执行顺序进行优先级设置，而不是bean的加载顺序，加载顺序是不能改变的。@Order(数字)，数字越小，优先级越高，默认数字是Int的最大值**
 
 
-
-
-
-
 ## SpringBoot
 
 
@@ -17387,6 +17383,38 @@ public class User implements Serializable {
 ```
 
 ## JVM
+
+
+### JVM的定义
+
+**Java Virtual Machine（Java虚拟机），JAVA程序的运行环境（JAVA二进制字节码的运行环境）**
+
+### JVM带来的好处
+
+* 一次编写，到处运行
+* 垃圾回收机制
+* 数组下标越界检查（C语言是没有的）
+
+### JVM、JRE、JDK的区别
+
+包含关系：**JDK>JRE>JVM**
+
+![jvm-01.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/jvm-01.png)
+
+
+### Java内存结构(JVM内存结构)
+
+**记得区别Java内存结构和Java内存模型，Java内存模型是虚构的，而Java内存结构是真实存在的**
+![jvm-02.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/jvm-02.png)
+
+
+#### 程序计数器 
+
+> 作用
+
+**记录下一条JVM执行的指令的地址**
+
+> 特点
 
 
 
