@@ -17420,7 +17420,246 @@ public class User implements Serializable {
 
 
 
-## Vue框架
+## Vue2框架
+
+**该Vue2入门笔记所参考的是：Vue.js官方文档、尤雨溪讲解视频(中文翻译版)、以及诸多CSDN笔记、知乎等，仅供入门参考，不作任何深入研究！**
+
+### 起步
+
+
+#### 编译器选择
+
+* IDEA（不推荐），IDEA开发Vue应用的代码提示不太友好
+* Hbuilder （不推荐），Hbuilder速度慢，HbuilderX是用C++进行重写，速度更快
+* HbuilderX （推荐），Vue的合作伙伴，代码提示很好，官方也推荐
+* vs code (推荐)，但没用过
+
+
+#### CDN安装Vue
+
+```html
+<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+```
+
+**或者**
+
+```html
+<!-- 生产环境版本，优化了尺寸和速度 -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+```
+
+#### 第一个Vue程序
+
+
+```html
+<div id="vue-app">
+    {{content}}
+</div>
+
+<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+
+<script>
+
+    var vue = new Vue({
+
+        el:'#vue-app', //绑定元素
+        data:{   //传入到绑定元素的数据
+            content:'hello world！！！'
+        }
+
+    });
+
+</script>
+```
+
+#### v-bind
+
+```html
+
+<html lang="en" xmlns:v="http://www.w3.org/1999/xhtml" xmlns:v-bind="http://www.w3.org/1999/xhtml">
+
+<div id="vue-app">
+    <span v-bind:title="currentTime">vue</span>
+</div>
+
+<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+
+<script>
+
+    var vue=new Vue({
+
+        el:'#vue-app',
+        data:{
+            currentTime:'页面加载于 ' + new Date().toLocaleString()
+        }
+
+    });
+
+</script>
+```
+
+然后在浏览器控制台输入vue.currentTime='v-bind触发了'，就会发现内容被更改了
+
+
+#### v-text
+
+**v-text和{{}}非常相似，其实他们两个作用也是差不多的。**
+
+```html
+<div id="vue-app1">
+    <!-- v-text取值-->
+    <h2 v-text="content"></h2>
+    <!-- {{}}取值-->
+    <h3>文本：{{content}}</h3>
+
+</div>
+
+<div id="vue-app2">
+    <!-- v-text取值-->
+    <h2 v-text="arr"></h2>
+    <!-- {{}}取值-->
+    <h3>文本：{{arr}}</h3>
+	
+	<!-- 取数组指定下标元素 -->
+	<h3>{{arr[2]}}</h3>
+	
+	 <h2 v-text="arr[1]"></h2>
+
+</div>
+
+<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+
+<script>
+
+    var vue1=new Vue({
+
+        el:'#vue-app1',
+        data:{
+            content:'我是内容'
+        }
+
+    });
+	
+	var vue2=new Vue({
+		
+		el:'#vue-app2',
+		data:{
+			arr:['1','2','3','4','5','6'] //传入数组
+			
+		}
+		
+		
+	});
+	
+</script>
+```
+
+
+
+#### v-html
+
+**v-text和v-html虽然看起来差不多，但是还是有很大的不同。**
+
+* v-text传入的数据**不会转义成html语句**
+* v-html传入的数据**会转义成html语句展示**
+
+**例子：**
+
+```html
+        <div id="vue-app">
+			<span>---------v-text</span>
+			<br />
+			<span v-text="content">
+				
+			</span>
+			
+			<br />
+			<span>---------v-html</span>
+			<br />
+			
+			<span v-html="content">
+				
+			</span>
+			
+		</div>
+		
+		
+		<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+		<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+		
+		<script type="text/javascript">
+		
+			var vue=new Vue({
+				
+				el:'#vue-app',
+				data:{
+					content:'<a href=\"https://gitee.com/youzhengjie\">个人主页</a>'
+				}
+				
+			});
+		
+		</script>
+```
+
+#### v-on和@
+
+**定义vue的事件方法必须在vue对象里面的methods定义，而不能在vue对象外定义**
+
+**methods的事件语法规则：**
+
+* 方法名:function(){js语法}
+
+
+**绑定单击事件方法,两种方法等价**
+
+* v-on:click="sub()"
+* @click="add()"
+
+> 案例
+
+```html
+        <div id="vue-app">
+			<!-- 绑定事件 -->
+			<input type="button" value="-" v-on:click="sub()">
+			<span>{{num}}</span>
+			<input type="button" value="+" @click="add()">
+			
+		</div>
+		
+		<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+		<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+		
+		<script>
+		
+		   var vue =new Vue({
+				
+				el:'#vue-app',
+				data:{
+					num:1
+				},
+				//定义vue的事件方法必须在vue对象里面的methods定义，而不能在vue对象外定义。。。。
+				methods:{
+					sub:function(){
+						this.num--; 
+						console.log(this); //这里的this等价于进入到data里面了
+					},
+					add:function(){
+						this.num++;
+						console.log(this.num);
+					}
+				}
+			   
+		   });
+		
+		</script>
+```
+
+
+
 
 ### Vue-cli
 
