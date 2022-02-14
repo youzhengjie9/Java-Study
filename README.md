@@ -17416,6 +17416,18 @@ public class User implements Serializable {
 
 > 特点
 
+* 线程私有
+  * CPU会为每个线程分配时间片，假如当前线程时间片用完之后就会执行另外一个线程的代码
+  * 每个线程都有一个程序计数器，CPU会不断重复上面的顺序去执行代码，**由程序计数器去记录每个线程应该执行哪一句代码**。
+* 不存在内存溢出
+
+#### 虚拟机栈
+
+**定义**
+
+* 每个线程运行需要的内存空间称为虚拟机栈
+* 每个栈由多个栈帧组成，栈帧是由调用方法产生的，调用完方法后自动销毁
+* 每个线程创建的虚拟机栈都**只有**一个活动栈帧，对应着当前正在执行的方法
 
 
 
@@ -17475,6 +17487,16 @@ public class User implements Serializable {
 ```
 
 #### v-bind
+
+**v-bind的作用是绑定属性，例如v-bind:src，就是绑定了src属性，我们可以在vue对象里面更改即可**
+
+绑定属性语法有**两种**
+
+* v-bind:src
+* :src
+
+**上面这两种方式等价**
+
 
 ```html
 
@@ -17605,13 +17627,13 @@ public class User implements Serializable {
 		</script>
 ```
 
-#### v-on和@
+#### 计数器案例：v-on/@
 
 **定义vue的事件方法必须在vue对象里面的methods定义，而不能在vue对象外定义**
 
 **methods的事件语法规则：**
 
-* 方法名:function(){js语法}
+* 方法名:function(也可以写方法参数){js语法}
 
 
 **绑定单击事件方法,两种方法等价**
@@ -17652,6 +17674,162 @@ public class User implements Serializable {
 						console.log(this.num);
 					}
 				}
+			   
+		   });
+		
+		</script>
+```
+
+
+#### v-show
+
+**v-show="布尔值"，如果布尔值为true说明展示，反之为false则隐藏，底层是通过修改css样式进行隐藏的**
+
+
+```html
+         <div id="vue-app">
+			
+			<h3 v-show="v1">v1</h3>
+			<h3 v-show="v2">v2</h3>
+			<h3 v-show="3>=5">v3</h3>
+			<h3 v-show="5>3">v4</h3>
+		</div>
+		
+		
+		<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+		<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+		
+		
+		<script>
+		
+			var vue=new Vue({
+				
+				el:'#vue-app',
+				data:{
+					v1:true,
+					v2:false
+				}
+				
+			});
+	
+		</script>
+```
+
+#### v-if
+
+```html
+        <div id="vue-app">
+			
+			<h3 v-if="res==1">
+				111
+			</h3>
+			<h3 v-else-if="res==2">
+				222
+			</h3>
+			
+			<h3 v-else-if="res==3">
+				333
+			</h3>
+			
+			<h3 v-else>
+				666
+			</h3>
+			
+		</div>
+		
+		<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+		<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+		
+		<script>
+		
+			var vue=new Vue({
+				
+				el:'#vue-app',
+				data:{					
+					res:3
+				}
+				
+			});
+		
+		</script>
+```
+
+#### v-for
+
+```html
+        <div id="vue-app">
+			
+			<div v-for="(item,index) in arr">
+				
+				{{item}}->{{index}}
+				
+			</div>
+			
+			
+		</div>
+		
+		<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+		<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+		
+		
+		<script>
+		
+			var vue=new Vue({
+				
+				el:'#vue-app',
+				data:{
+					
+					arr:['aaa','bbb','ccc','ddd','eee']
+				}
+				
+			});
+		
+		</script>
+```
+
+
+
+#### 切换图片案例
+
+```html
+        <div id="vue-app">
+			
+			<!-- 因为切换图片是切换src，所以要用v-bind:src或者:src去绑定src属性 -->
+			
+			<input type="button" value="<" @click="left()" v-show="index!=0">
+			<img v-bind:src="imgs[index]" alt="" style="width: 200px;height: 200px;">
+			<input type="button" value=">" v-on:click="right()" v-show="index!=imgs.length-1">
+		</div>
+		
+		<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+		<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+		
+		<script>
+		
+		   var vue = new Vue({
+			   
+			   el:'#vue-app',
+			   data:{
+				   // 定义一个存放图片的数组
+				   imgs:['http://5b0988e595225.cdn.sohucs.com/images/20170828/5ebb6bb4797e4d4faa848c530acfd016.jpeg',
+				         'https://pic.qqtn.com/up/2019-1/2019010208201525732.jpg',
+						 'https://ss0.bdstatic.com/70cFuHSh_Q1YnxGkpoWK1HF6hhy/it/u=1901564855,3168536127&fm=26&gp=0.jpg',
+						 'http://n.sinaimg.cn/sinacn/w640h595/20180218/a939-fyrswmu0801569.jpg',
+						 'http://pic.wodingche.com/carimg/febgjfifz.jpeg'
+						],
+				   index:0
+			   },
+			   methods:{
+				   
+				   left:function(){
+					   console.log('left');
+					   this.index--;
+				   },
+				   right:function(){
+					   console.log('right')
+					   this.index++;
+				   }
+			   }
 			   
 		   });
 		
