@@ -17425,10 +17425,154 @@ public class User implements Serializable {
 
 **定义**
 
+* 线程私有
 * 每个线程运行需要的内存空间称为虚拟机栈
-* 每个栈由多个栈帧组成，栈帧是由调用方法产生的，调用完方法后自动销毁
+* 每个栈由多个栈帧组成，栈帧是由调用方法产生的(入栈)，调用完方法后自动销毁(出栈)
 * 每个线程创建的虚拟机栈都**只有**一个活动栈帧，对应着当前正在执行的方法
 
+
+##### 垃圾回收是否涉及栈内存
+
+**不涉及**。因为虚拟机栈是由一个个栈帧组成，当调用方法时**栈帧入栈**，调用完该方法后该栈帧出栈，即内存释放了。所以不需要
+垃圾回收器去回收栈内存。
+
+##### 栈内存越大是否越好？
+
+**不是**。因为物理内存是固定的一个数值，栈内存增大，好处是可以接受更多次递归调用或者方法调用，但是可执行的线程就会变少。因为我们上面说了
+当线程执行代码时就会创建一个虚拟机栈，**假如我们物理内存有1000MB和每一个栈内存10MB，这种情况计算得可以支持的线程数是100个**，
+反之如果我们增大栈内存，**物理内存还是1000MB而每一个栈内存变成100MB，这种情况下我们能够支持的线程数变成了10个。大幅减少了可支持线程线程数**。
+
+##### 方法内的局部变量是否安全
+
+* 如果方法外不能使用该局部变量，那么就是**线程安全**的，反之则是不安全
+
+##### 栈溢出
+
+**异常信息：Java.lang.stackOverflowError**
+
+**原因：**
+
+* 递归没有终止条件，或者是永远无法达到递归终止条件，则会导致方法调用产生**栈帧过多**，最终发生栈溢出异常。（**较为常见**） 
+* 某个方法太过于庞大，导致**栈帧多大**，最终发生栈溢出。（**不常见**）
+
+##### 排查CPU占用过高--重要
+
+**第一步在控制台输入：top,然后找到了占用cpu过高的进程**
+
+![jvm-03.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/jvm-03.png)
+
+**第二步输入：top -Hp cpu占用多高的进程id(也就是上面top命令查看到的进程id) ，然后就可以找到cpu占用高的线程id**
+
+![jvm-04.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/jvm-04.png)
+
+**第三步输入：jstack 线程id**
+
+**上面我们找到的线程id是3294。转成16进制，得0xCDE，根据这个16进制数找到对应的位置就可以看到信息了。**
+
+
+
+#### 本地方法栈
+
+一些带有**native关键字**的方法就会调用本地的C/C++函数，因为Java不能和系统底层交互，所以需要这些语言的借助。
+
+#### 堆
+
+通过**new**关键字创建的对象就会被放到堆内存。
+
+**特点：**
+
+* 线程共享。堆内存的对象需要考虑线程安全问题
+* 有垃圾回收机制
+
+
+**堆内存溢出**
+
+**java.lang.OutofMemoryError**，简称OOM
+
+
+##### 堆内存诊断工具
+
+**jps**
+
+```text
+D:\java code\netty-study>jps
+10276 Launcher
+18804 demo  #目标进程id
+14236 Jps
+```
+**jmap**
+
+> JDK8之前
+
+```text
+jmap -heap 进程id
+```
+
+> JDK8之后
+
+```text
+jhsdb jmap --heap --pid 进程id
+```
+
+**输出**
+
+```text
+Attaching to process ID 18804, please wait...
+Debugger attached successfully.
+Server compiler detected.
+JVM version is 10.0.2+13
+
+using thread-local object allocation.
+Garbage-First (G1) GC with 8 thread(s)
+
+Heap Configuration:
+   MinHeapFreeRatio         = 40
+   MaxHeapFreeRatio         = 70
+   MaxHeapSize              = 6402605056 (6106.0MB)
+   NewSize                  = 1363144 (1.2999954223632812MB)
+   MaxNewSize               = 3840933888 (3663.0MB)
+   OldSize                  = 5452592 (5.1999969482421875MB)
+   NewRatio                 = 2
+   SurvivorRatio            = 8
+   MetaspaceSize            = 21807104 (20.796875MB)
+   CompressedClassSpaceSize = 1073741824 (1024.0MB)
+   MaxMetaspaceSize         = 17592186044415 MB
+   G1HeapRegionSize         = 1048576 (1.0MB)
+
+Heap Usage:
+G1 Heap:
+   regions  = 6106
+   capacity = 6402605056 (6106.0MB)
+   used     = 4194304 (4.0MB)
+   free     = 6398410752 (6102.0MB)
+   0.06550933508024893% used
+G1 Young Generation:
+Eden Space:
+   regions  = 4
+   capacity = 27262976 (26.0MB)
+   used     = 4194304 (4.0MB)
+   free     = 23068672 (22.0MB)
+   15.384615384615385% used
+Survivor Space:
+   regions  = 0
+   capacity = 0 (0.0MB)
+   used     = 0 (0.0MB)
+   free     = 0 (0.0MB)
+   0.0% used
+G1 Old Generation:
+   regions  = 0
+   capacity = 373293056 (356.0MB)
+   used     = 0 (0.0MB)
+   free     = 373293056 (356.0MB)
+   0.0% used
+
+5360 interned Strings occupying 400600 bytes.
+
+```
+
+**jconsole**
+
+**jvirsualvm**
 
 
 
