@@ -17981,6 +17981,342 @@ G1 Old Generation:
 ```
 
 
+#### v-model
+
+**v-model可以实现双向绑定。**
+
+```html
+        <div id="vue-app">
+			
+			<!-- t1绑定了text字段，如果修改t1的内容，则vue对象的text也会被修改，反之修改vue对象的text字段t1也会被修改，这就是双向绑定 -->
+			<input id="t1" type="text" v-model="text">
+			
+			<!-- 展示vue对象的text值，看看有没有实现双向绑定 -->
+			<h3>{{text}}</h3>
+			
+		</div>
+		
+		
+		<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+		<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+		
+		<script>
+		
+		   var vue=new Vue({
+			   
+			  el:'#vue-app',
+			  data:{
+				  
+				text:'默认文本'
+				  
+			  }
+			   
+		   });
+		
+		
+		</script>
+```
+
+
+### Vue生命周期函数
+
+
+```html
+      <div id="vue-app">
+			
+			<span id="t1">{{tx}}</span>
+			
+			
+		</div>
+		
+		
+		<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+		<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+		
+		<script>
+		
+		// VUE生命周期钩子函数
+			var vue=new Vue({
+				
+				el:'#vue-app',
+				data:{
+					tx:'数据加载了'
+				},
+				//创建vue对象前调用
+				beforeCreate:()=>{
+					
+					console.log('beforeCreate')
+					
+				},
+				//创建vue对象后立刻调用，此时data还没有赋值到html
+				created:()=>{
+					
+					console.log(document.getElementById('t1').innerText); //返回：{{tx}}
+				},
+				//data赋值到html页面后触发。
+				mounted:()=>{
+					
+					console.log(document.getElementById('t1').innerText);//返回：数据加载了
+				},
+				//销毁vue对象后触发
+				destroyed: () => {
+					
+					console.log('vue对象被销毁了')
+				}
+				
+			});
+			
+			vue.$destroy(); //销毁vue对象，触发destroyed生命周期钩子函数
+		
+		
+		</script>
+```
+
+
+### 定义data的3种方式
+
+**这三种方法效果其实是差不多一样的，就是语法不同。**
+
+
+
+```html
+        <div id="vue-app1">
+			
+			<span>{{content}}</span>
+			
+		</div>
+		
+		<div id="vue-app2">
+			
+			<span>{{content}}</span>
+			
+		</div>
+		
+		<div id="vue-app3">
+			
+			<span>{{content}}</span>
+			
+		</div>
+		
+		
+		<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+		<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+		
+		
+		<script>
+		
+		// 方式一：推荐
+			var vue1=new Vue({
+				
+				el:'#vue-app1',
+				data:{		
+					content:'vue-app1'	
+				}
+				
+			});
+		
+		//方式二：不喜欢
+			var vue2=new Vue({
+				
+				el:'#vue-app2',
+				data:function(){
+					return{
+						content:'vue-app2'
+					}
+				}
+				
+			});
+			
+		
+		//方式三：推荐
+			var vue3=new Vue({
+				
+				el:'#vue-app3',
+				data(){
+					
+					return{
+						content:'vue-app3'
+					}
+				}
+				
+			});
+		
+		
+		
+		</script>
+```
+
+
+### axios异步通信
+
+**axious实际上就是ajax的替代品。**
+
+#### 安装axios
+
+> CDN安装
+
+```html
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+```
+
+或者
+
+```html
+<script src="https://cdn.staticfile.org/axios/0.21.0/axios.min.js"></script>
+```
+
+> npm安装
+
+```shell script
+$ npm install axios
+```
+
+> github下载
+
+**https://github.com/axios/axios**
+
+
+#### 使用axios
+
+##### get
+
+```html
+<div id="vue-app">
+			{{json}}
+			<input type="button" @click="getJson()" v-bind:value="btnName">
+		</div>
+		
+		 
+		
+		
+		<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+		<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+		
+		<!-- axios异步通信 -->
+		<script src="https://cdn.staticfile.org/axios/0.21.0/axios.min.js"></script>
+		
+		
+		<script>
+		
+			var vue =new Vue({
+				
+				el:'#vue-app',
+				// 等价于data:{}
+				data(){
+					return {
+						
+						json:'null',
+						btnName:'getJson'
+						
+					}
+				},
+				methods:{
+					
+					// 1：方式一：this可以获取，推荐用
+					getJson:function(){
+						// axios异步调用
+						
+						//********保存当前this对象，因为axios内部访问的this不是vue对象的this*********
+						var nthis=this; 
+						
+						
+						axios
+						.get('./axios-demo.json?username=1')
+						.then(function(response){
+							nthis.json=response.data.sites[1].name;//获取axios请求过来的json
+						})
+						.catch(function(err){
+							console.log(err)
+						});
+						
+					}
+					
+					//方式二：this获取不到,说明getJson:function(){}和getJson:()=>{}是有区别的
+					
+					// getJson:()=>{
+					// 	// axios异步调用
+						
+					// 	//********保存当前this对象，因为axios内部访问的this不是vue对象的this*********
+					// 	var nthis=this; 
+						
+						
+					// 	axios
+					// 	.get('./axios-demo.json?username=1')
+					// 	.then(function(response){
+					// 		nthis.json=response.data.sites[1].name;//获取axios请求过来的json
+					// 	})
+					// 	.catch(function(err){
+					// 		console.log(err)
+					// 	});
+						
+					// }
+					
+				},
+				mounted() {
+					
+					//********保存当前this对象，因为axios内部访问的this不是vue对象的this*********
+					var nthis=this;
+					
+					
+					axios
+					.get('./axios-demo.json?username=1')
+					.then(function(response){
+						console.log(nthis)
+					})
+					.catch(function(err){
+						console.log(err)
+					});
+					
+				}
+				
+			});
+
+		</script>
+```
+
+**axios-demo.json文件:**
+
+```json
+{
+    "name":"网站",
+    "num":3,
+    "sites": [
+        { "name":"Google", "info":[ "Android", "Google 搜索", "Google 翻译" ] },
+        { "name":"Runoob", "info":[ "菜鸟教程", "菜鸟工具", "菜鸟微信" ] },
+        { "name":"Taobao", "info":[ "淘宝", "网购" ] }
+    ]
+}
+
+```
+
+
+##### ()=>和function()区别
+
+
+**()=>和function()定义方法内的this对象是不同的，很多情况还是用function()好一点**
+
+
+##### post
+
+```html
+axios.post('/user',{
+    username:'root',
+    password:123456
+})
+.then(function(response){
+    console.log(response)
+}
+)
+.catch(function(err){
+    console.log(err)
+}
+);
+```
+
+
+
+### Vue Component
+
 
 
 ### Vue-cli
