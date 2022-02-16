@@ -17500,7 +17500,7 @@ D:\java code\netty-study>jps
 18804 demo  #目标进程id
 14236 Jps
 ```
-**jmap**
+**1：jmap**
 
 > JDK8之前
 
@@ -17570,9 +17570,24 @@ G1 Old Generation:
 
 ```
 
-**jconsole**
+**2：jconsole**
 
-**jvirsualvm**
+**3：jvirsualvm**
+
+**4：阿里巴巴arthas**
+
+
+#### 方法区
+
+**JDK1.8之前和JDK1.8之后的方法区结构：**
+
+![jvm-05.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/jvm-05.png)
+
+**方法区的实现：**
+
+* JDK1.8之前，也就是jdk1.6、jdk1.7这些版本方法区采用的是**永久代**
+* JDK1.8之后，也就是jdk1.8、jdk1.9这些版本方法区采用的是**元空间**
+
 
 
 
@@ -18317,9 +18332,112 @@ axios.post('/user',{
 
 ### Vue Component
 
+**组件是可复用的Vue实例， 说白了就是一组可以重复使用的模板， 跟JSTL的自定义标签、Thymeleal的th:fragment等框架有着异曲同工之妙，通常一个应用会以一棵嵌套的组件树的形式来组织：**
+
+#### 第一个组件
+
+```html
+        <div id="vue-app">
+			<!-- 自定义标签就是组件 -->
+			<my-content></my-content>
+		</div>
+		
+		
+		
+		<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+		<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+		
+		
+		<script>
+		
+			//定义组件。。
+			//组件必须放在new Vue绑定的el元素内，不然无法生效
+			Vue.component('my-content',{
+				
+				template:'<div>\
+				<ul>\
+				<li>Java</li>\
+				<li>Redis</li>\
+				<li>Docker</li>\
+				</ul>\
+				</div>'
+			});
+		
+			var vue=new Vue({
+				
+				el:'#vue-app'
+				,
+				comments:['my-content'] //可选：也可以这样写
+				
+			});
+		
+		
+		
+		</script>
+```
 
 
-### Vue-cli
+#### 使用props属性传递参数
+
+**注意：默认规则下props属性里的值不能为大写**
+
+```html
+        <div id="vue-app">
+			
+			<!-- 使用组件 ,绑定循环对象-->
+			<my-content v-for="(item,index) in tx" v-bind:proptx="item"></my-content>
+			
+			<!-- 使用组件，绑定多个值 -->
+			<my-foot v-bind:us="username" :pwd="password"></my-foot>
+		</div>
+		
+		
+		<!-- 开发环境版本，包含了有帮助的命令行警告 -->
+		<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+		
+		
+		<script>
+			
+			//使用props把vue对象的参数传到Vue.component组件里面,然后配合v-bind:prop='接收的值'
+			
+			Vue.component('my-content',{
+				
+				props:['proptx'],
+				template:'<h3>{{proptx}}</h3>'
+				
+			});
+			
+			Vue.component('my-foot',{
+				
+				props:['us','pwd'],
+				template:'<h4>{{us}}->{{pwd}}</h4>'
+				
+			});
+			
+			
+			var vue =new Vue({
+				
+				el:'#vue-app',
+				
+				data() {
+					
+					return{
+						
+						tx:[1,2,3],
+						username:'admin',
+						password:'123666'
+						
+					}
+					
+				}
+				
+			});
+		
+		
+		</script>
+```
+
+### Vue-cli脚手架
 
 > 安装nodejs
 
@@ -18409,3 +18527,32 @@ vue list
 ![vue3.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/vue3.png)
 
 **这就是我们的第一个Vue-cli程序了。**
+
+
+##### 执行vue-cli出现报错
+
+![vue4.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/vue4.png)
+
+> 解决办法
+
+```shell script
+npm audit fix  #进行修复即可
+````
+
+
+### webpack打包工具
+
+**webpack是一款模块加载器兼打包工具， 它能把各种资源， 如JS、JSX、ES 6、SASS、LESS、图片等都作为模块来处理和使用。**
+
+#### 安装webpack
+
+```shell script
+npm install webpack -g
+npm install webpack-cli -g
+```
+
+```shell script
+webpack -v
+webpack-cli -v
+```
+
