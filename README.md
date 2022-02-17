@@ -18556,3 +18556,211 @@ webpack -v
 webpack-cli -v
 ```
 
+#### 使用webpack
+
+**创建名称为webpack.config.js的配置文件。例如：**
+
+![vue5.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/vue5.png)
+
+> 编写webpack打包的简单配置
+
+```js
+const path = require('path');
+
+module.exports = {
+  entry: './src/main.js', //打包入口
+  output: {
+    path: path.resolve(__dirname, 'dist'), //输出路径
+    filename: 'bundle.js' //相当于./dist/bundle.js
+  }
+}
+```
+
+**webpack配置项：**
+
+* entry：入口文件,指定WebPack用哪个文件作为项目的入口
+* output：输出,指定WebPack把处理完成的文件放置到指定路径
+* module：模块,用于处理各种类型的文件
+* plugins：插件,如：热更新、代码重用等
+* resolve：设置路径指向
+* watch：监听,用于设置文件改动后直接打包
+
+**执行命令即可打包：**
+
+```shell script
+webpack
+```
+
+> 动态打包，监听
+
+```shell script
+webpack --watch
+```
+
+### 展示Vue内容
+
+**vue文件其实就是组件，组件名为export default中的name，所以想要展示vue组件的内容，有如下两种方法：**
+
+**方式一：**
+![vue6.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/vue6.png)
+
+**方式二：**
+![vue7.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/vue7.png)
+
+**不然vue的内容将不会展示，除非用vue-router**
+
+**main.js**
+
+```js
+//程序主入口
+import Vue from "vue"; //导入vue
+import Home from "./components/Home";//导入Home组件
+
+//使用vue
+
+new Vue({
+
+  //******这里main.js的el名称必须是#app
+  el:'#app',
+  //注册组件,必须要
+  components:{
+    Home
+  },
+  template: '<Home></Home>'
+});
+```
+
+**Home.vue**
+
+```vue
+<template>
+    <div id="app">
+<!--      接收传值 -->
+      <h3>{{tx}}</h3>
+    </div>
+</template>
+
+<script>
+    export default {
+        name: "Home", //vue组件名。import Home from xxx
+        data(){ //相当于new Vue里面的data属性，给当前vue组件传值
+          return{
+            tx:'hello vue'
+          }
+        }
+    }
+</script>
+
+<style scoped>
+
+</style>
+
+```
+
+### vue的注意点
+
+* **程序主入口main.js的el名称必须是#app，否则会报错**
+
+
+### Vue组件嵌套Vue组件
+
+#### 实战
+
+**main.js**
+
+```js
+//程序主入口
+import Vue from "vue"; //导入vue
+import Home from "./components/Home";//导入Home组件
+//使用vue
+
+new Vue({
+
+  //******这里main.js的el名称必须是#app
+  el:'#app',
+  //注册组件,必须要
+  components:{
+    Home
+  },
+  template: '<Home></Home>'
+});
+
+```
+
+**Home.vue**
+
+```vue
+<template>
+    <div id="app">
+<!--      接收传值 -->
+      <h3>{{tx}}</h3>
+      <MyContent></MyContent>
+      <MyFoot></MyFoot>
+    </div>
+</template>
+
+<script>
+  //需要什么组件就导入什么组件，并且注册
+  //方式一：
+  // import MyContent from "@/components/MyContent";
+  //方式二：
+  import MyContent from "./MyContent";
+
+  import MyFoot from "./MyFoot";
+    export default {
+        name: "Home", //vue组件名。import Home from xxx
+        data(){ //相当于new Vue里面的data属性，给当前vue组件传值
+          return{
+            tx:'hello vue'
+          }
+        },
+      //注册组件
+      components: {
+          MyContent,MyFoot
+      }
+    }
+</script>
+
+<style scoped>
+
+</style>
+
+```
+
+**MyContent.vue**
+
+```vue
+<template>
+    <div id="ct">
+      <h3>我是内容</h3>
+    </div>
+</template>
+
+<script>
+    export default {
+        name: "MyContent"
+    }
+</script>
+
+<style scoped>
+
+</style>
+```
+
+**MyFoot.vue**
+
+```vue
+<template>
+  <h3>this is foot</h3>
+</template>
+
+<script>
+    export default {
+        name: "MyFoot"
+    }
+</script>
+
+<style scoped>
+
+</style>
+```
