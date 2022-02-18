@@ -18764,3 +18764,199 @@ new Vue({
 
 </style>
 ```
+
+### vue-router
+
+**vue-Router是Vue.js官方的路由管理器。它和Vue.js的核心深度集成， 让构建单页面应用变得易如反掌。包含的功能有：**
+
+* 嵌套的路由/视图表
+* 模块化的、基于组件的路由配置
+* 路由参数、查询、通配符
+* 基于Vue js过渡系统的视图过渡效果
+* 细粒度的导航控制
+* 带有自动激活的CSS class的链接
+* HTML5 历史模式或hash模式， 在IE 9中自动降级
+* 自定义的滚动行为
+
+#### 使用vue-router
+
+##### 安装
+
+```shell script
+npm install vue-router --save-dev
+```
+
+##### vue-router报错
+
+**因为默认下载的vue-router是vue-router4，我们要修改到vue-router3才能使用。比如3.5.3版本就可以**
+
+![vue8.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/vue8.png)
+
+#### 路由实战
+
+**项目结构：**
+
+![vue9.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/vue9.png)
+
+
+**main.js:**
+
+```js
+import Vue from "vue";
+
+import App from "./App";
+
+import router from "./router";
+
+new Vue({
+
+  el:'#app',
+  router,
+  render: h => h(App)
+})
+```
+
+**App.vue:**
+
+
+```vue
+<template>
+
+  <div id="app">
+
+<!--    路由链接-->
+    <router-link to="/main">首页</router-link>
+    <router-link to="/content">内容</router-link>
+    <router-link to="/other">其他</router-link>
+
+<!--    路由展示组件-->
+    <router-view></router-view>
+
+    <h3>-------------------</h3>
+<!--    命名路由视图-->
+    <router-view name="otherview"></router-view>
+  </div>
+
+</template>
+
+<script>
+    export default {
+        name: "App"
+    }
+</script>
+
+<style scoped>
+
+</style>
+```
+
+**路由核心配置文件,index.js:**
+
+```js
+import Vue from 'vue'
+//导入路由插件
+import VueRouter from 'vue-router'
+//导入上面定义的组件
+import Content from '../components/Content'
+import Main from '../components/Main'
+import Other from "../components/Other";
+
+//安装路由
+Vue.use(VueRouter);
+
+//配置路由
+export default new VueRouter({
+  routes: [
+    {
+      //路由路径
+      path: '/content',
+      //路由名称
+      name: 'content',
+      //跳转到组件
+      component: Content
+    }, {
+      //路由路径
+      path: '/main',
+      //路由名称
+      name: 'main',
+      //跳转到组件
+      component: Main
+    }, {
+
+      path: '/other',
+      components: {
+        // default: Content, //默认如果当访问这个路径没有指定视图的name则会到这个组件
+        otherview: Other //命名视图格式==>视图的name:响应组件名
+      }
+
+    }
+  ]
+});
+
+```
+
+**Content.vue:**
+
+```vue
+<template>
+    <h3>content</h3>
+</template>
+
+<script>
+    export default {
+        name: "Content"
+    }
+</script>
+
+<style scoped>
+
+</style>
+
+```
+
+
+**Main.vue:**
+
+```vue
+<template>
+    <h3>main</h3>
+</template>
+
+<script>
+    export default {
+        name: "Main"
+    }
+</script>
+
+<style scoped>
+
+</style>
+
+```
+
+
+**Other.vue:**
+
+```vue
+<template>
+    <h3>其他</h3>
+</template>
+
+<script>
+    export default {
+        name: "Other"
+    }
+</script>
+
+<style scoped>
+
+</style>
+
+```
+
+### vue+element-ui
+
+
+### 路由嵌套
+
+### 参数传递和重定向
