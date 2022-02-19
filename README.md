@@ -17591,7 +17591,7 @@ G1 Old Generation:
 
 
 
-## Vue2框架
+## Vue2框架-2.9.6
 
 **该Vue2入门笔记所参考的是：Vue.js官方文档、尤雨溪讲解视频(中文翻译版)、以及诸多CSDN笔记、知乎等，仅供入门参考，不作任何深入研究！**
 
@@ -18778,7 +18778,7 @@ new Vue({
 * HTML5 历史模式或hash模式， 在IE 9中自动降级
 * 自定义的滚动行为
 
-#### 使用vue-router
+#### 使用vue-router3.0
 
 ##### 安装
 
@@ -18956,7 +18956,673 @@ export default new VueRouter({
 
 ### vue+element-ui
 
+#### 安装element-ui
+
+```shell script
+#安装element-ui
+npm i element-ui -S
+#安装依赖
+npm install
+# npm安装SASS加载器
+npm install sass-loader node-sass --save-dev
+
+
+# 如果不行就用cnpm安装SASS加载器
+cnpm install sass-loader node-sass --save-dev
+```
+
+**package.json：**
+
+```json
+{
+  "name": "myvue2",
+  "version": "1.0.0",
+  "description": "A Vue.js project",
+  "author": "ms666 <1550324080@qq.com>",
+  "private": true,
+  "scripts": {
+    "dev": "webpack-dev-server --inline --progress --config build/webpack.dev.conf.js",
+    "start": "npm run dev",
+    "build": "node build/build.js"
+  },
+  "dependencies": {
+    "element-ui": "^2.15.6",
+    "vue": "^2.5.2"
+  },
+  "devDependencies": {
+    "autoprefixer": "^7.1.2",
+    "babel-core": "^6.22.1",
+    "babel-helper-vue-jsx-merge-props": "^2.0.3",
+    "babel-loader": "^7.1.1",
+    "babel-plugin-syntax-jsx": "^6.18.0",
+    "babel-plugin-transform-runtime": "^6.22.0",
+    "babel-plugin-transform-vue-jsx": "^3.5.0",
+    "babel-preset-env": "^1.3.2",
+    "babel-preset-stage-2": "^6.22.0",
+    "chalk": "^2.0.1",
+    "copy-webpack-plugin": "^4.0.1",
+    "css-loader": "^0.28.0",
+    "extract-text-webpack-plugin": "^3.0.0",
+    "file-loader": "^1.1.4",
+    "friendly-errors-webpack-plugin": "^1.6.1",
+    "html-webpack-plugin": "^2.30.1",
+    "node-notifier": "^5.1.2",
+    "node-sass": "^7.0.1",
+    "optimize-css-assets-webpack-plugin": "^3.2.0",
+    "ora": "^1.2.0",
+    "portfinder": "^1.0.13",
+    "postcss-import": "^11.0.0",
+    "postcss-loader": "^2.0.8",
+    "postcss-url": "^7.2.1",
+    "rimraf": "^2.6.0",
+    "sass-loader": "^12.6.0",
+    "semver": "^5.3.0",
+    "shelljs": "^0.8.5",
+    "uglifyjs-webpack-plugin": "^1.1.1",
+    "url-loader": "^0.5.8",
+    "vue-loader": "^13.3.0",
+    "vue-router": "^3.5.3",
+    "vue-style-loader": "^3.0.1",
+    "vue-template-compiler": "^2.5.2",
+    "webpack": "^3.6.0",
+    "webpack-bundle-analyzer": "^2.9.0",
+    "webpack-dev-server": "^2.9.1",
+    "webpack-merge": "^4.1.0"
+  },
+  "engines": {
+    "node": ">= 6.0.0",
+    "npm": ">= 3.0.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not ie <= 8"
+  ]
+}
+
+```
+
+#### 使用element-ui
+
+> 引入element-ui
+
+**在项目的入口文件main.js引入以下即可。**
+
+```js
+import Vue from 'vue'
+import ElementUI from 'element-ui'
+import 'element-ui/lib/theme-chalk/index.css'
+Vue.use(ElementUI)
+```
+
+> 实战
+
+**main.js**
+
+```js
+import Vue from 'vue'
+import ElementUI from 'element-ui'
+import 'element-ui/lib/theme-chalk/index.css'
+
+import App from "./App";
+
+//路由配置
+import router from "./router";
+
+Vue.use(router)
+//使用elementui插件
+Vue.use(ElementUI)
+
+new Vue({
+
+  el:'#app',
+  router,
+  render: h => h(App)
+})
+
+```
+
+**App.vue**
+
+```vue
+<template>
+
+  <div id="app">
+
+    <router-link to="/activity">新增活动</router-link>
+    <router-link to="/info">数据信息</router-link>
+
+<!--    /activity专用路由视图-->
+    <router-view name="act"></router-view>
+
+    <!--    /info专用路由视图-->
+    <router-view name="in"></router-view>
+
+  </div>
+
+</template>
+
+<script>
+  export default {
+    name: "App"
+  }
+</script>
+
+<style>
+  #app {
+    font-family: 'Avenir', Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-align: center;
+    color: #2c3e50;
+    margin-top: 60px;
+  }
+</style>
+
+```
+
+**路由index.js**
+
+```js
+import Vue from 'vue'
+//导入路由插件
+import VueRouter from 'vue-router'
+//导入上面定义的组件
+import Activity from "../views/Activity";
+import Info from "../views/Info";
+
+//安装路由
+Vue.use(VueRouter);
+
+//配置路由
+export default new VueRouter({
+  routes: [
+    {
+      //路由路径
+      path: '/activity',
+      //路由名称
+      name: 'activity',
+      //跳转到组件
+      components: {
+
+        act:Activity
+
+      }
+    },
+    {
+      //路由路径
+      path: '/info',
+      //路由名称
+      name: 'info',
+      //跳转到组件
+      components: {
+
+        in:Info
+
+      }
+    }
+  ]
+});
+
+```
+
+**Activity.vue**
+
+```vue
+<template>
+
+  <el-form :model="ruleForm" :rules="rules" ref="ruleForm" label-width="100px" class="demo-ruleForm">
+    <el-form-item label="活动名称" prop="name">
+      <el-input v-model="ruleForm.name"></el-input>
+    </el-form-item>
+    <el-form-item label="活动区域" prop="region">
+      <el-select v-model="ruleForm.region" placeholder="请选择活动区域">
+        <el-option label="区域一" value="shanghai"></el-option>
+        <el-option label="区域二" value="beijing"></el-option>
+      </el-select>
+    </el-form-item>
+    <el-form-item label="活动时间" required>
+      <el-col :span="11">
+        <el-form-item prop="date1">
+          <el-date-picker type="date" placeholder="选择日期" v-model="ruleForm.date1" style="width: 100%;"></el-date-picker>
+        </el-form-item>
+      </el-col>
+      <el-col class="line" :span="2">-</el-col>
+      <el-col :span="11">
+        <el-form-item prop="date2">
+          <el-time-picker placeholder="选择时间" v-model="ruleForm.date2" style="width: 100%;"></el-time-picker>
+        </el-form-item>
+      </el-col>
+    </el-form-item>
+    <el-form-item label="即时配送" prop="delivery">
+      <el-switch v-model="ruleForm.delivery"></el-switch>
+    </el-form-item>
+    <el-form-item label="活动性质" prop="type">
+      <el-checkbox-group v-model="ruleForm.type">
+        <el-checkbox label="美食/餐厅线上活动" name="type"></el-checkbox>
+        <el-checkbox label="地推活动" name="type"></el-checkbox>
+        <el-checkbox label="线下主题活动" name="type"></el-checkbox>
+        <el-checkbox label="单纯品牌曝光" name="type"></el-checkbox>
+      </el-checkbox-group>
+    </el-form-item>
+    <el-form-item label="特殊资源" prop="resource">
+      <el-radio-group v-model="ruleForm.resource">
+        <el-radio label="线上品牌商赞助"></el-radio>
+        <el-radio label="线下场地免费"></el-radio>
+      </el-radio-group>
+    </el-form-item>
+    <el-form-item label="活动形式" prop="desc">
+      <el-input type="textarea" v-model="ruleForm.desc"></el-input>
+    </el-form-item>
+    <el-form-item>
+      <el-button type="primary" @click="submitForm('ruleForm')">立即创建</el-button>
+      <el-button @click="resetForm('ruleForm')">重置</el-button>
+    </el-form-item>
+  </el-form>
+
+</template>
+
+<script>
+  export default {
+    name:'Activity',
+    data() {
+      return {
+        ruleForm: {
+          name: '',
+          region: '',
+          date1: '',
+          date2: '',
+          delivery: false,
+          type: [],
+          resource: '',
+          desc: ''
+        },
+        rules: {
+          name: [
+            { required: true, message: '请输入活动名称', trigger: 'blur' },
+            { min: 3, max: 5, message: '长度在 3 到 5 个字符', trigger: 'blur' }
+          ],
+          region: [
+            { required: true, message: '请选择活动区域', trigger: 'change' }
+          ],
+          date1: [
+            { type: 'date', required: true, message: '请选择日期', trigger: 'change' }
+          ],
+          date2: [
+            { type: 'date', required: true, message: '请选择时间', trigger: 'change' }
+          ],
+          type: [
+            { type: 'array', required: true, message: '请至少选择一个活动性质', trigger: 'change' }
+          ],
+          resource: [
+            { required: true, message: '请选择活动资源', trigger: 'change' }
+          ],
+          desc: [
+            { required: true, message: '请填写活动形式', trigger: 'blur' }
+          ]
+        }
+      };
+    },
+    methods: {
+      submitForm(formName) {
+        this.$refs[formName].validate((valid) => {
+          if (valid) {
+            alert('submit!');
+          } else {
+            console.log('error submit!!');
+            return false;
+          }
+        });
+      },
+      resetForm(formName) {
+        this.$refs[formName].resetFields();
+      }
+    }
+  }
+</script>
+
+<style scoped>
+
+</style>
+
+```
+
+**Info.vue**
+
+```vue
+<style>
+  .el-table .warning-row {
+    background: oldlace;
+  }
+
+  .el-table .success-row {
+    background: #f0f9eb;
+  }
+</style>
+
+<template>
+  <el-table
+    :data="tableData"
+    style="width: 100%"
+    :row-class-name="tableRowClassName">
+    <el-table-column
+      prop="date"
+      label="日期"
+      width="180">
+    </el-table-column>
+    <el-table-column
+      prop="name"
+      label="姓名"
+      width="180">
+    </el-table-column>
+    <el-table-column
+      prop="address"
+      label="地址">
+    </el-table-column>
+  </el-table>
+</template>
+
+<script>
+  export default {
+    name: 'Info',
+    methods: {
+      tableRowClassName({row, rowIndex}) {
+        if (rowIndex === 1) {
+          return 'warning-row';
+        } else if (rowIndex === 3) {
+          return 'success-row';
+        }
+        return '';
+      }
+    },
+    data() {
+      return {
+        tableData: [{
+          date: '2016-05-02',
+          name: '王小虎',
+          address: '上海市普陀区金沙江路 1518 弄',
+        }, {
+          date: '2016-05-04',
+          name: '王小虎',
+          address: '上海市普陀区金沙江路 1518 弄'
+        }, {
+          date: '2016-05-01',
+          name: '王小虎',
+          address: '上海市普陀区金沙江路 1518 弄',
+        }, {
+          date: '2016-05-03',
+          name: '王小虎',
+          address: '上海市普陀区金沙江路 1518 弄'
+        }]
+      }
+    }
+  }
+</script>
+
+<style scoped>
+
+</style>
+
+```
 
 ### 路由嵌套
 
+
+#### 嵌套路由注意的问题
+
+**嵌套路由必须只有一个root，否则会报错**
+
+```text
+  - Component template should contain exactly one root element. If you are using v-if on multiple elements, use v-else-if to chain them instead.
+
+
+ @ ./src/views/Info.vue 12:0-360
+ @ ./src/router/index.js
+ @ ./src/main.js
+ @ multi (webpack)-dev-server/client?http://localhost:8080 webpack/hot/dev-server ./src/main.js
+```
+
+> 问题产生原因
+
+```vue
+<template>
+
+<!--  嵌套路由必须只有一个root，下面这个div就是root-->
+
+  
+    <router-link to="/chird/chirdContent">展示嵌套路由内容</router-link>
+    <el-table
+      :data="tableData"
+      style="width: 100%"
+      :row-class-name="tableRowClassName">
+      <el-table-column
+        prop="date"
+        label="日期"
+        width="180">
+      </el-table-column>
+      <el-table-column
+        prop="name"
+        label="姓名"
+        width="180">
+      </el-table-column>
+      <el-table-column
+        prop="address"
+        label="地址">
+      </el-table-column>
+    </el-table>
+
+<!--  嵌套路由视图-->
+  <router-view name="cc"></router-view>
+
+</template>
+```
+
+> 解决办法
+
+**解决办法就是用一个div包括他们全部**
+
+```vue
+<template>
+
+<!--  嵌套路由必须只有一个root，下面这个div就是root-->
+  <div>
+    <router-link to="/chird/chirdContent">展示嵌套路由内容</router-link>
+    <el-table
+      :data="tableData"
+      style="width: 100%"
+      :row-class-name="tableRowClassName">
+      <el-table-column
+        prop="date"
+        label="日期"
+        width="180">
+      </el-table-column>
+      <el-table-column
+        prop="name"
+        label="姓名"
+        width="180">
+      </el-table-column>
+      <el-table-column
+        prop="address"
+        label="地址">
+      </el-table-column>
+    </el-table>
+  <!--  嵌套路由视图-->
+  <router-view name="cc"></router-view>
+
+  </div>
+</template>
+```
+
+
+#### 实战
+
+**路由配置index.js**
+
+```js
+import Vue from 'vue'
+//导入路由插件
+import VueRouter from 'vue-router'
+//导入上面定义的组件
+import Activity from "../views/Activity";
+import Info from "../views/Info";
+
+//路由嵌套组件
+import ChirdContent from "../views/chirdrenViews/ChirdContent";
+
+//安装路由
+Vue.use(VueRouter);
+
+//配置路由
+export default new VueRouter({
+  routes: [
+    {
+      //路由路径
+      path: '/activity',
+      //路由名称
+      name: 'activity',
+      //跳转到组件
+      components: {
+
+        act:Activity
+
+      }
+    },
+    {
+      //路由路径
+      path: '/info',
+      //路由名称
+      name: 'info',
+      //跳转到组件
+      components: {
+
+        in:Info
+
+      },
+      //配置路由嵌套
+      children: [
+        {
+          path: '/chird/chirdContent',
+          components: {
+            cc:ChirdContent //ChirdContent组件嵌套在info这个vue组件中
+          }
+        }
+      ]
+    }
+  ]
+});
+
+```
+
+**被嵌套组件：**
+
+```vue
+<style>
+  .el-table .warning-row {
+    background: oldlace;
+  }
+
+  .el-table .success-row {
+    background: #f0f9eb;
+  }
+</style>
+
+<template>
+
+<!--  嵌套路由必须只有一个root，下面这个div就是root-->
+  <div>
+    <router-link to="/chird/chirdContent">展示嵌套路由内容</router-link>
+    <el-table
+      :data="tableData"
+      style="width: 100%"
+      :row-class-name="tableRowClassName">
+      <el-table-column
+        prop="date"
+        label="日期"
+        width="180">
+      </el-table-column>
+      <el-table-column
+        prop="name"
+        label="姓名"
+        width="180">
+      </el-table-column>
+      <el-table-column
+        prop="address"
+        label="地址">
+      </el-table-column>
+    </el-table>
+  <!--  嵌套路由视图-->
+  <router-view name="cc"></router-view>
+
+  </div>
+
+
+</template>
+
+<script>
+  export default {
+    name: 'Info',
+    methods: {
+      tableRowClassName({row, rowIndex}) {
+        if (rowIndex === 1) {
+          return 'warning-row';
+        } else if (rowIndex === 3) {
+          return 'success-row';
+        }
+        return '';
+      }
+    },
+    data() {
+      return {
+        tableData: [{
+          date: '2016-05-02',
+          name: '王小虎',
+          address: '上海市普陀区金沙江路 1518 弄',
+        }, {
+          date: '2016-05-04',
+          name: '王小虎',
+          address: '上海市普陀区金沙江路 1518 弄'
+        }, {
+          date: '2016-05-01',
+          name: '王小虎',
+          address: '上海市普陀区金沙江路 1518 弄',
+        }, {
+          date: '2016-05-03',
+          name: '王小虎',
+          address: '上海市普陀区金沙江路 1518 弄'
+        }]
+      }
+    }
+  }
+</script>
+
+<style scoped>
+
+</style>
+
+```
+
+**嵌套组件**
+
+```vue
+<template>
+    <h3>路由嵌套内容</h3>
+</template>
+
+<script>
+    export default {
+        name: "ChirdContent"
+    }
+</script>
+
+<style scoped>
+
+</style>
+
+```
+
+**其他基本和上面的实战一致。**
+
+
 ### 参数传递和重定向
+
+
