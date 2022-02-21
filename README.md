@@ -17588,6 +17588,170 @@ G1 Old Generation:
 * JDK1.8之前，也就是jdk1.6、jdk1.7这些版本方法区采用的是**永久代**
 * JDK1.8之后，也就是jdk1.8、jdk1.9这些版本方法区采用的是**元空间**
 
+**常量池**
+
+二进制字节码的组成：类的基本信息、常量池、类的方法定义、jvm指令
+
+##### 通过反编译来查看类的信息
+
+**1：先用javac编译成class**
+
+```shell script
+javac Demo1.java
+```
+
+**2：再用javap进行反编译字节码文件**
+
+```shell script
+javap -v Demo1.class
+```
+
+**3：输出反编译后的字节码信息**
+
+```text
+Classfile /D:/java code/jvm/src/com/jvm/demo1/Demo1.class
+  Last modified 2022年2月21日; size 429 bytes
+  MD5 checksum dcc0c07c66f64b64b606d0b6566c3c9c
+  Compiled from "Demo1.java"
+public class com.jvm.demo1.Demo1
+  minor version: 0
+  major version: 54
+  flags: (0x0021) ACC_PUBLIC, ACC_SUPER
+  this_class: #5                          // com/jvm/demo1/Demo1
+  super_class: #6                         // java/lang/Object
+  interfaces: 0, fields: 0, methods: 2, attributes: 1
+Constant pool:
+   #1 = Methodref          #6.#15         // java/lang/Object."<init>":()V
+   #2 = String             #16            // hello
+   #3 = Fieldref           #17.#18        // java/lang/System.out:Ljava/io/PrintStream;
+   #4 = Methodref          #19.#20        // java/io/PrintStream.println:(Ljava/lang/String;)V
+   #5 = Class              #21            // com/jvm/demo1/Demo1
+   #6 = Class              #22            // java/lang/Object
+   #7 = Utf8               <init>
+   #8 = Utf8               ()V
+   #9 = Utf8               Code
+  #10 = Utf8               LineNumberTable
+  #11 = Utf8               main
+  #12 = Utf8               ([Ljava/lang/String;)V
+  #13 = Utf8               SourceFile
+  #14 = Utf8               Demo1.java
+  #15 = NameAndType        #7:#8          // "<init>":()V
+  #16 = Utf8               hello
+  #17 = Class              #23            // java/lang/System
+  #18 = NameAndType        #24:#25        // out:Ljava/io/PrintStream;
+  #19 = Class              #26            // java/io/PrintStream
+  #20 = NameAndType        #27:#28        // println:(Ljava/lang/String;)V
+  #21 = Utf8               com/jvm/demo1/Demo1
+  #22 = Utf8               java/lang/Object
+  #23 = Utf8               java/lang/System
+  #24 = Utf8               out
+  #25 = Utf8               Ljava/io/PrintStream;
+  #26 = Utf8               java/io/PrintStream
+  #27 = Utf8               println
+  #28 = Utf8               (Ljava/lang/String;)V
+{
+  public com.jvm.demo1.Demo1();
+    descriptor: ()V
+    flags: (0x0001) ACC_PUBLIC
+    Code:
+      stack=1, locals=1, args_size=1
+         0: aload_0
+         1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+         4: return
+      LineNumberTable:
+        line 3: 0
+
+  public static void main(java.lang.String[]);
+    descriptor: ([Ljava/lang/String;)V
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=2, locals=2, args_size=1
+         0: ldc           #2                  // String hello
+         2: astore_1
+         3: getstatic     #3                  // Field java/lang/System.out:Ljava/io/PrintStream;
+         6: aload_1
+         7: invokevirtual #4                  // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+        10: return
+      LineNumberTable:
+        line 7: 0
+        line 9: 3
+        line 11: 10
+}
+SourceFile: "Demo1.java"
+
+```
+
+**真正编译的方法内容：**
+
+```text
+Code:
+      stack=2, locals=2, args_size=1
+         0: ldc           #2                  // String hello
+         2: astore_1
+         3: getstatic     #3                  // Field java/lang/System.out:Ljava/io/PrintStream;
+         6: aload_1
+         7: invokevirtual #4                  // Method java/io/PrintStream.println:(Ljava/lang/String;)V
+        10: return
+```
+
+**这些#数字代表地址，需要去常量池里面找。。。。**
+
+
+**常量池内容：**
+
+```text
+Constant pool:
+   #1 = Methodref          #6.#15         // java/lang/Object."<init>":()V
+   #2 = String             #16            // hello
+   #3 = Fieldref           #17.#18        // java/lang/System.out:Ljava/io/PrintStream;
+   #4 = Methodref          #19.#20        // java/io/PrintStream.println:(Ljava/lang/String;)V
+   #5 = Class              #21            // com/jvm/demo1/Demo1
+   #6 = Class              #22            // java/lang/Object
+   #7 = Utf8               <init>
+   #8 = Utf8               ()V
+   #9 = Utf8               Code
+  #10 = Utf8               LineNumberTable
+  #11 = Utf8               main
+  #12 = Utf8               ([Ljava/lang/String;)V
+  #13 = Utf8               SourceFile
+  #14 = Utf8               Demo1.java
+  #15 = NameAndType        #7:#8          // "<init>":()V
+  #16 = Utf8               hello
+  #17 = Class              #23            // java/lang/System
+  #18 = NameAndType        #24:#25        // out:Ljava/io/PrintStream;
+  #19 = Class              #26            // java/io/PrintStream
+  #20 = NameAndType        #27:#28        // println:(Ljava/lang/String;)V
+  #21 = Utf8               com/jvm/demo1/Demo1
+  #22 = Utf8               java/lang/Object
+  #23 = Utf8               java/lang/System
+  #24 = Utf8               out
+  #25 = Utf8               Ljava/io/PrintStream;
+  #26 = Utf8               java/io/PrintStream
+  #27 = Utf8               println
+  #28 = Utf8               (Ljava/lang/String;)V
+```
+
+**运行时常量池**
+
+* **常量池**的**值是一个地址**，不是真正的值
+```text
+#2 = String             #16 
+```
+* **运行时常量池**当该**类被加载**时，它的常量池信息（也就是上面展示的）就**会变成真正的值**。
+
+
+#### 常量池和字符串常量池StringTable区别
+
+* StringTable底层是**HashTable**，是**线程安全**的
+* 常量池的值是一个地址，只有运行时才会变成真正的值
+* 可以利用字符串常量池StringTable的特性来**避免重复创建String对象**
+* 字符串**变量**的**加法拼接**底层是new了一个StringBuilder再new一个String对象进行拼接
+* 字符串**常量**的**加法拼接**原理是**编译器优化**。
+* 可以使用**intern方法**主动将StringTable还没有的字符串放入StringTable。
+* StringTable和堆的字符串都是对象
+
+
+
 
 
 
