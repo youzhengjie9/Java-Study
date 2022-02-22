@@ -17740,7 +17740,7 @@ Constant pool:
 * **运行时常量池**当该**类被加载**时，它的常量池信息（也就是上面展示的）就**会变成真正的值**。
 
 
-#### 常量池和字符串常量池StringTable区别
+##### 常量池和字符串常量池StringTable区别
 
 * StringTable底层是**HashTable**，是**线程安全**的
 * 常量池的值是一个地址，只有运行时才会变成真正的值
@@ -17749,10 +17749,240 @@ Constant pool:
 * 字符串**常量**的**加法拼接**原理是**编译器优化**。
 * 可以使用**intern方法**主动将StringTable还没有的字符串放入StringTable。
 * StringTable和堆的字符串都是对象
+* StringTable用来放字符串对象且里面的元素不重复
+
+> 基本操作展示
+
+```java
+public static void main(String[] args) {
+
+      String a="a";
+
+      String b="b";
+
+      String ab="ab";
+
+  }
+```
+
+**编译得：**
+
+```text
+Constant pool:
+   #1 = Methodref          #6.#15         // java/lang/Object."<init>":()V
+   #2 = String             #16            // a
+   #3 = String             #17            // b
+   #4 = String             #18            // ab
+   #5 = Class              #19            // com/jvm/demo1/Demo1
+   #6 = Class              #20            // java/lang/Object
+   #7 = Utf8               <init>
+   #8 = Utf8               ()V
+   #9 = Utf8               Code
+  #10 = Utf8               LineNumberTable
+  #11 = Utf8               main
+  #12 = Utf8               ([Ljava/lang/String;)V
+  #13 = Utf8               SourceFile
+  #14 = Utf8               Demo1.java
+  #15 = NameAndType        #7:#8          // "<init>":()V
+  #16 = Utf8               a
+  #17 = Utf8               b
+  #18 = Utf8               ab
+  #19 = Utf8               com/jvm/demo1/Demo1
+  #20 = Utf8               java/lang/Object
+
+```
+
+```text
+         0: ldc           #2                  // String a
+         2: astore_1
+         3: ldc           #3                  // String b
+         5: astore_2
+         6: ldc           #4                  // String ab
+         8: astore_3
+         9: return
+```
+
+**ldc指令会把字符串放入StringTable。**
+
+**上面代码执行后最终StringTable [“a”, “b”, “ab”]**
+
+**注意：字符串对象的创建都是懒惰的，只有当运行到那一行字符串且在串池中不存在的时候（如 ldc #2）时，该字符串才会被创建并放入串池中。**
+
+
+> 使用拼接字符串变量对象创建字符串的过程
+
+```java
+    public static void main(String[] args) {
+
+      String a="a";
+
+      String b="b";
+
+      String ab="ab";
+
+      String ab2=a+b;
+
+  }
+```
+
+```text
+ Code:
+      stack=2, locals=5, args_size=1
+         0: ldc           #2                  // String a
+         2: astore_1
+         3: ldc           #3                  // String b
+         5: astore_2
+         6: ldc           #4                  // String ab
+         8: astore_3
+         9: new           #5                  // class java/lang/StringBuilder
+        12: dup
+        13: invokespecial #6                  // Method java/lang/StringBuilder."<init>":()V
+        16: aload_1
+        17: invokevirtual #7                  // Method java/lang/StringBuilder.append:(Ljava/lang/String
+;)Ljava/lang/StringBuilder;
+        20: aload_2
+        21: invokevirtual #7                  // Method java/lang/StringBuilder.append:(Ljava/lang/String
+;)Ljava/lang/StringBuilder;
+        24: invokevirtual #8                  // Method java/lang/StringBuilder.toString:()Ljava/lang/Str
+ing;
+        27: astore        4
+        29: return
+```
+
+**通过拼接的方式来创建字符串的过程是：StringBuilder().append(“a”).append(“b”).toString()**
+
+**最后的toString方法的返回值是一个新的字符串，但字符串的值和拼接的字符串一致，但是两个不同的字符串，一个存在于串池之中，一个存在于堆内存之中**
+
+```java
+public static void main(String[] args) {
+
+      String a="a";
+
+      String b="b";
+
+      String ab="ab";
+
+      String ab2=a+b;
+
+      System.out.println(ab==ab2);//false
+
+  }
+```
+
+> 字符串常量拼接
+
+**编译期优化会直接使用StringTable对象，必须全部都是常量才是这个结果，但凡有一个变量就不行。**
+
+**场景1：**
+
+```java
+public static void main(String[] args) {
+
+      String a="a";
+
+      String b="b";
+
+      String ab="ab";
+
+      String ab2="a"+"b";
+
+      System.out.println(ab==ab2);//编译期优化true
+
+  }
+```
+
+**场景2：**
+
+```java
+public static void main(String[] args) {
+
+     final String a="a";
+
+     final String b="b";
+
+      String ab="ab";
+
+      String ab2=a+b;
+
+      System.out.println(ab==ab2);//true
+
+  }
+```
+
+**使用拼接字符串常量的方法来创建新的字符串时，因为内容是常量，javac在编译期会进行优化，结果已在编译期确定为ab，而创建ab的时候已经在串池中放入了“ab**
+**所以ab2直接从串池中获取值，所以进行的操作和 ab = “ab” 一致。**
+
+##### JDK1.8后的intern
+
+```java
+public static void main(String[] args) {
+
+      String a="a";
+
+      String b="b";
+
+      String ab="ab";
+
+      String ab2=a+b;
+
+      System.out.println(ab==ab2);//false
+
+      String ab3 = ab2.intern(); 
+
+      System.out.println(ab==ab3); //true
+
+
+  }
+```
+
+**JDK1.8后intern原理：**
+```java
+String ab3 = ab2.intern(); 
+```
+* 首先会拿ab2对象去StringTable找，**如果没有就会把这个对象放入StringTable并返回这个地址**
+* **如果StringTable有这个字符串，则直接返回StringTable的这个字符串**
+* **无论放入是否成功，都会返回串池中的字符串对象**
+
+**注意：此时如果调用intern方法成功，堆内存与串池中的字符串对象是同一个对象；如果失败，则不是同一个对象**
 
 
 
+##### JDK1.6的intern
 
+**JDK1.6intern原理：**
+
+* 调用字符串对象的intern方法，会将该字符串对象尝试放入到串池中
+* 如果串池中没有该字符串对象，会将该**字符串对象复制一份**，**再放入到串池中**
+* 如果有该字符串对象，则放入失败
+* 无论放入是否成功，都会返回串池中的字符串对象
+
+**注意：此时无论调用intern方法成功与否，串池中的字符串对象和堆内存中的字符串对象都不是同一个对象**
+
+
+##### StringTable 垃圾回收
+
+StringTable在内存紧张时，**会发生垃圾回收**
+
+
+##### StringTable调优
+
+* 因为StringTable底层是HashTable，所以**可以适当增加HashTable桶的数量**，来减少字符串放入串池的时间
+
+```shell script
+-XX:StringTableSize=xxxx
+```
+
+* 考虑是否需要将字符串对象入池
+**可以通过intern方法减少重复入池**
+
+
+#### 直接内存
+
+
+### 垃圾回收GC
+
+
+### 类加载
 
 
 ## Vue2框架-2.9.6
