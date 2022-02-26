@@ -18007,16 +18007,111 @@ StringTable在内存紧张时，**会发生垃圾回收**
 
 * **特点**：**当对象被强引用所引用时**，**该对象不会被垃圾回收**。只有GC root都不引用这个对象才会被垃圾回收
 
+```java
+      //强引用
+      String str=new String("strong");
+
+      str=null; //断开引用
+      System.gc(); //垃圾回收
+
+      str=new String("aaa");
+      System.out.println(str);
+```
+
 ##### 软引用
 
 * **该对象没有被强引用所引用的前提下**，**该对象被软引用所引用，当内存不足时会被垃圾回收。**
+
+> 软引用，不搭配引用队列情况
+
+```java
+            //软引用
+            String str=new String("SoftReference");
+            
+            SoftReference<String> softReference=new SoftReference<String>(str);
+      
+            str=null;
+            System.gc();
+```
+
+> 软引用，搭配引用队列情况
+
+```java
+          //软引用
+         String str=new String("SoftReference");
+   
+         //创建引用队列
+         ReferenceQueue<String> referenceQueue=new ReferenceQueue<String>();
+   
+         //引用队列绑定软引用
+         SoftReference<String> softReference=new SoftReference<String>(str,referenceQueue);
+   
+         System.out.println(referenceQueue.poll());
+   
+         str=null;
+         System.gc();
+   
+         System.out.println(referenceQueue.poll()); //由于内存充足，不会被回收
+
+```
 
 ##### 弱引用
 
 * **该对象同样没有被强引用所引用，该对象被弱引用所引用，不管内存是否充足都会被回收。**
 
+> 弱引用，不搭配引用队列情况
+
+```java
+      int size=1024*100;
+
+      byte bytes[]=new byte[size];
+
+      //绑定软引用、引用队列
+      WeakReference<byte[]> weakReference=new WeakReference<byte[]>(bytes);
+
+      System.out.println(bytes);
+      System.out.println(weakReference.get());
+
+      bytes=null; //断开强引用是前提
+      System.gc(); //gc
+
+      System.out.println("==============");
+      System.out.println(weakReference.get()); //null
+      System.out.println(bytes); //null
+      System.out.println(weakReference);///java.lang.ref.WeakReference@66048bfd
+```
+
+> 弱引用，搭配引用队列情况
+
+```java
+      int size=1024*100;
+
+      byte bytes[]=new byte[size];
+
+      //创建引用队列
+      ReferenceQueue<byte[]> referenceQueue=new ReferenceQueue<>();
+      //绑定软引用、引用队列
+      WeakReference<byte[]> weakReference=new WeakReference<byte[]>(bytes,referenceQueue);
+
+      System.out.println(referenceQueue.poll()); //因为没有gc后的对象在引用队列中所以null
+      System.out.println(bytes);
+      System.out.println(weakReference.get());
+
+      bytes=null; //断开强引用是前提
+      System.gc(); //gc
+
+      System.out.println("==============");
+      System.out.println(weakReference.get()); //null
+      System.out.println(bytes); //null
+      Reference<? extends byte[]> reference = referenceQueue.poll(); //存储gc后的WeakReference<byte[]>对象
+      System.out.println(reference);//java.lang.ref.WeakReference@66048bfd
+      System.out.println(weakReference);///java.lang.ref.WeakReference@66048bfd 和上面的一样
+      
+```
+
 ##### 虚引用
 
+* 相当于无引用，使对象无法被使用，必须与引用队列配合使用
 * 当虚引用所引用的对象被垃圾回收时以后，**虚引用对象就会被放入引用队列中**，**调用虚引用的方法。**
 * 虚引用的一个体现是**释放直接内存**，*当引用的对象ByteBuffer被垃圾回收后**，**虚引用对象Cleaner就会被放入引用队列**，**然后调用Clean的clean方法释放直接内存**。
 
@@ -18031,6 +18126,20 @@ StringTable在内存紧张时，**会发生垃圾回收**
   * 当**软引用**和**弱引用**被垃圾回收后，就会把这些引用放入引用队列，方便一起回收。
 * **虚引用**和**终结器引用** **必须搭配**引用队列  
   * 虚引用和终结器引用在使用时会关联一个引用队列
+
+
+#### 垃圾回收算法
+
+
+#### 分代回收
+
+
+#### 垃圾回收器
+
+
+#### GC调优
+
+
 
 ### 类加载
 
