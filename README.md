@@ -18131,6 +18131,35 @@ StringTable在内存紧张时，**会发生垃圾回收**
 #### 垃圾回收算法
 
 
+##### 标记-清除
+
+![jvm-08.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/jvm-08.png)
+
+**定义：标记清除算法指的是先标记可回收对象，然后再把这些可回收对象进行清除。**
+
+* 这里的清除不是把那块内存占用清0，而是记录其起始地址、结束地址，下次需要使用的时候**直接覆盖那块内存**即可。
+
+**缺点：容易产生大量内存碎片。导致大对象无法使用这些内存区域，从而导致GC，GC会导致STW暂停线程。**
+
+
+##### 标记-整理
+
+![jvm-09.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/jvm-09.png)
+
+**特点：和标记-清除算法相比标记整理算法不会有内存碎片，但是由于整理是需要时间的，所以速度方面会比较慢。**
+
+
+##### 复制
+
+![jvm-10.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/jvm-10.png)
+![jvm-11.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/jvm-11.png)
+![jvm-12.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/jvm-12.png)
+![jvm-13.png](https://gitee.com/youzhengjie/Java-Study/raw/master/doc/images/jvm-13.png)
+
+**定义**：复制算法**首先会开辟多一块相同大小的内存空间TO**，然后会将**不可回收对象**放到TO区域，再回收FROM区域的**可回收对象**，最后**交换FROM和TO区域**。
+
+**缺点**：占用了**双倍内存**空间
+
 #### 分代回收
 
 
